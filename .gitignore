@@ -1,0 +1,28 @@
+# Local tool state
+.ace-tool/
+*not_commit*
+
+# Environment files
+.env
+.env.local
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Node.js
+node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+
+# macOS
+.DS_Store
