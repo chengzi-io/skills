@@ -1,0 +1,5 @@
+interface:
+  display_name: "Grill-me"
+  short_description: "Stress-test thinking via 2–4 related questions per round"
+  policy:
+    allow_implicit_invocation: false
