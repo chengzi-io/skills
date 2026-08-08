@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "chengzi-skills",
+  "description": "A collection of reusable Agent Skills for development workflows, productivity, and quality engineering.",
+  "owner": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/JoJoJotarou"
+  },
+  "plugins": [
+    {
+      "name": "chengzi-skills",
+      "description": "Reusable Agent Skills covering development workflows, decision-making, and quality engineering.",
+      "source": "./",
+      "category": "engineering"
+    }
+  ]
+}

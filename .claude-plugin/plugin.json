@@ -1,0 +1,10 @@
+{
+  "name": "chengzi-skills",
+  "version": "0.1.0",
+  "description": "Reusable Agent Skills covering development workflows, decision-making, and quality engineering.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/JoJoJotarou"
+  },
+  "license": "MIT"
+}
