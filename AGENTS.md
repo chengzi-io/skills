@@ -4,4 +4,4 @@
 
 ## Plugin Validation - **Mandatory**
 
-- Run `claude plugin validate .` before every commit
+- Run `claude plugin validate .` & `claude plugin validate .claude-plugin/plugin.json` before every commit
