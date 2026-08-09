@@ -6,5 +6,10 @@
     "name": "JoJoJotarou",
     "url": "https://github.com/JoJoJotarou"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "skills": [
+    "./skills/writing/write-adr",
+    "./skills/writing/write-bdd",
+    "./skills/writing/write-ears"
+  ]
 }
