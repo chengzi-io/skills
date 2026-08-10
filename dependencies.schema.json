@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "./dependencies.schema.json",
+  "$id": "https://chengzi-io.github.io/skills/dependencies.schema.json",
   "title": "Plugin Dependency Manifest",
   "type": "object",
   "additionalProperties": false,
@@ -33,6 +33,24 @@
         "source": {
           "$ref": "#/$defs/source"
         },
+        "resolved": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sha", "syncedAt"],
+          "description": "Pinned commit actually present on disk after last successful install/sync.",
+          "properties": {
+            "sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$",
+              "description": "Full Git commit SHA of the upstream ref when content was written to disk."
+            },
+            "syncedAt": {
+              "type": "string",
+              "minLength": 1,
+              "description": "ISO-8601 timestamp of the last successful install/sync that produced this SHA."
+            }
+          }
+        },
         "target": {
           "$ref": "#/$defs/target"
         }
@@ -46,18 +64,13 @@
           "then": {
             "properties": {
               "source": {
-                "allOf": [
-                  { "$ref": "#/$defs/source" },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "path": {
-                        "type": "string",
-                        "pattern": "^.+(?:\\/SKILL\\.md)?$"
-                      }
-                    }
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "pattern": "^.+(?:\\/SKILL\\.md)?$"
                   }
-                ]
+                }
               }
             }
           }
@@ -70,18 +83,13 @@
           "then": {
             "properties": {
               "source": {
-                "allOf": [
-                  { "$ref": "#/$defs/source" },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "path": {
-                        "type": "string",
-                        "pattern": "^.+\\.md$"
-                      }
-                    }
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "pattern": "^.+\\.md$"
                   }
-                ]
+                }
               }
             }
           }

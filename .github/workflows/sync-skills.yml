@@ -54,4 +54,5 @@ jobs:
           delete-branch: true
           add-paths: |
             skills/**
+            dependencies.json
             README.md

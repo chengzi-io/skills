@@ -43,6 +43,20 @@ const truncate = (s, n = 60) => (s.length > n ? `${s.slice(0, n)}…` : s);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const oneLine = (s, n = 100) => truncate(String(s || '').replace(/\s+/g, ' ').trim(), n);
 const mdCell = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+const shortSha = (sha) => (sha && sha.length >= 7 ? sha.slice(0, 7) : sha || '');
+const makeResolved = (sha) => ({
+  sha,
+  syncedAt: new Date().toISOString(),
+});
+
+/** Human-readable source ref, optionally with pinned commit. */
+function formatSourceLabel(dep) {
+  if (!dep) return 'local';
+  const ref = dep.source.branch || dep.source.tag || dep.source.release || '';
+  const base = ref ? `${dep.source.repo}@${ref}` : dep.source.repo;
+  if (dep.resolved?.sha) return `${base}#${shortSha(dep.resolved.sha)}`;
+  return base;
+}
 
 /** Section title + lines. Avoid clack note() (CJK breaks the box width). */
 function printSection(title, lines) {
@@ -195,6 +209,14 @@ async function ghFetch(url, { retries = 3 } = {}) {
 async function getDefaultBranch(owner, repo) {
   const data = await ghFetch(`${GH_API}/repos/${owner}/${repo}`);
   return data.default_branch;
+}
+
+/** Resolve floating ref (branch/tag/release) to a full commit SHA. */
+async function resolveCommitSha(owner, repo, ref) {
+  const data = await ghFetch(
+    `${GH_API}/repos/${owner}/${repo}/commits/${encodeURIComponent(ref)}`,
+  );
+  return data.sha;
 }
 
 async function getTree(owner, repo, ref) {
@@ -491,12 +513,14 @@ async function collectSkill() {
         const plugin = ensurePlugin(mkt, groupName);
         if (!plugin.skills.includes(relPath)) plugin.skills.push(relPath);
 
+        const sha = await resolveCommitSha(owner, repo, ref);
         const added = upsertDependency(deps, {
           type: 'skill',
           source: { repo: `${owner}/${repo}`, path: s.root, branch: ref },
-          target: { plugin: 'chengzi-skills', name },
+          resolved: makeResolved(sha),
+          target: { plugin: groupName, name },
         });
-        results.push({ name, files: s.files.length, group: groupName, added });
+        results.push({ name, files: s.files.length, group: groupName, added, sha });
       }
       await writeJson(DEPS_FILE, deps);
       await writeJson(MKT_FILE, mkt);
@@ -519,7 +543,7 @@ async function collectSkill() {
       { pluginOrder: [...new Set(results.map((r) => r.group))] },
     ),
   );
-  await refreshReadmeQuiet();
+  await refreshReadme();
   log.message('Tip: claude plugin validate .claude-plugin/marketplace.json');
   return true;
 }
@@ -544,11 +568,8 @@ export async function collectSkillRows() {
     const name = skillPath.split('/').pop();
     const plugin = pluginOf.get(skillPath) || '-';
     const dep = depByPath.get(skillPath);
-    let source = 'local';
-    if (dep) {
-      const ref = dep.source.branch || dep.source.tag || dep.source.release || '';
-      source = ref ? `${dep.source.repo}@${ref}` : dep.source.repo;
-    }
+    const source = dep ? formatSourceLabel(dep) : 'local';
+    const syncedAt = dep?.resolved?.syncedAt || '';
 
     let description = '';
     if (localSet.has(skillPath)) {
@@ -565,6 +586,7 @@ export async function collectSkillRows() {
       name,
       plugin,
       source,
+      syncedAt,
       description,
       local: localSet.has(skillPath) ? 'yes' : 'no',
       path: skillPath,
@@ -584,19 +606,22 @@ export async function collectSkillRows() {
   return rows;
 }
 
-/** Markdown table for README (Skill / Plugin / Source / Description). */
+/** Markdown table for README (Skill / Plugin / Source / Synced / Description). */
 export function renderSkillsTable(rows) {
-  const header = '| Skill | Plugin | Source | Description |';
-  const sep = '|-------|--------|--------|-------------|';
+  const header = '| Skill | Plugin | Source | Synced | Description |';
+  const sep = '|-------|--------|--------|--------|-------------|';
   if (rows.length === 0) {
-    return [header, sep, '| _(none)_ | | | |'].join('\n');
+    return [header, sep, '| _(none)_ | | | | |'].join('\n');
   }
 
   const body = rows.map((r) => {
     const skill = r.local === 'no'
       ? `\`${r.name}\` ⚠️ missing`
       : `[\`${r.name}\`](${r.path})`;
-    return `| ${mdCell(skill)} | ${mdCell(r.plugin)} | ${mdCell(r.source)} | ${mdCell(r.description)} |`;
+    const synced = r.syncedAt
+      ? r.syncedAt.slice(0, 10)
+      : (r.source === 'local' ? '—' : 'unknown');
+    return `| ${mdCell(skill)} | ${mdCell(r.plugin)} | ${mdCell(r.source)} | ${mdCell(synced)} | ${mdCell(r.description)} |`;
   });
   return [header, sep, ...body].join('\n');
 }
@@ -637,15 +662,28 @@ export async function updateReadmeSkillsTable({ checkOnly = false, quiet = false
   return { changed: true, count: rows.length };
 }
 
-/** Best-effort README refresh after mutations (never throws to callers). */
-async function refreshReadmeQuiet() {
-  try {
-    const r = await updateReadmeSkillsTable({ quiet: true });
-    if (r.missingMarkers) log.warn('README.md missing <!-- skills:table:start/end --> markers');
-    else if (r.changed) log.success(`README skills table updated (${r.count})`);
-  } catch (e) {
-    log.warn(`README table refresh skipped: ${e.message}`);
+/**
+ * Refresh README after skill mutations. Throws if markers missing or I/O fails
+ * so add/sync/remove cannot "succeed" with a stale table silently.
+ *
+ * Guaranteed call sites (must stay in sync with this list):
+ *   - collectSkill (Add skill)
+ *   - manageCollected sync / remove
+ *   - syncAll (pnpm sync), after file + pin writes
+ * Drift detection (does not write):
+ *   - validateAll / `pnpm readme -- --check`
+ * Manual: `pnpm readme`
+ * NOT covered: hand-editing SKILL.md / marketplace / deps without manager
+ */
+async function refreshReadme({ quiet = true } = {}) {
+  const r = await updateReadmeSkillsTable({ quiet });
+  if (r.missingMarkers) {
+    throw new Error(
+      'README.md missing <!-- skills:table:start --> / <!-- skills:table:end --> markers',
+    );
   }
+  if (r.changed && quiet) log.success(`README skills table updated (${r.count})`);
+  return r;
 }
 
 async function listCollected() {
@@ -679,6 +717,16 @@ async function validateAll() {
       if (!d.target?.plugin) err(`Missing target.plugin: ${JSON.stringify(d)}`);
       const refs = ['branch', 'tag', 'release'].filter((k) => d.source?.[k]);
       if (refs.length > 1) err(`${d.source?.repo}: use only one of branch/tag/release`);
+      if (!d.resolved?.sha) {
+        err(`${localNameOf(d)}: missing resolved.sha (run pnpm sync to pin)`);
+      } else if (!/^[0-9a-f]{40}$/.test(d.resolved.sha)) {
+        err(`${localNameOf(d)}: resolved.sha must be a 40-char hex commit`);
+      }
+      if (!d.resolved?.syncedAt) {
+        err(`${localNameOf(d)}: missing resolved.syncedAt`);
+      } else if (Number.isNaN(Date.parse(d.resolved.syncedAt))) {
+        err(`${localNameOf(d)}: resolved.syncedAt is not a valid date`);
+      }
     }
   });
 
@@ -753,9 +801,7 @@ export async function compareWithUpstream(dep) {
     if (local !== upstream) changedFiles.push(f);
   });
 
-  const sha = (await ghFetch(
-    `${GH_API}/repos/${owner}/${repo}/commits/${encodeURIComponent(ref)}`,
-  )).sha;
+  const sha = await resolveCommitSha(owner, repo, ref);
 
   return {
     missing: false,
@@ -796,7 +842,8 @@ async function syncToLocal(r, dep, { quiet = false } = {}) {
     await mkdir(path.dirname(target), { recursive: true });
     await writeFile(target, content, 'utf8');
   }
-  const msg = `${r.localName}: synced ${files.length} file(s) (@ ${r.sha.slice(0, 8)})`;
+  dep.resolved = makeResolved(r.sha);
+  const msg = `${r.localName}: synced ${files.length} file(s) (@ ${shortSha(r.sha)})`;
   if (quiet) console.log(`  ok  ${msg}`);
   else log.success(msg);
   if (r.localOnly.length > 0) {
@@ -819,6 +866,7 @@ async function reinstallFromDep(dep, { quiet = false } = {}) {
     : blobs.filter((b) => b.path.startsWith(`${root}/`)).map((b) => b.path);
   if (files.length === 0) throw new Error(`${name}: no files under ${root} in ${owner}/${repo}@${ref}`);
 
+  const sha = await resolveCommitSha(owner, repo, ref);
   await downloadSkill({
     owner,
     repo,
@@ -827,9 +875,11 @@ async function reinstallFromDep(dep, { quiet = false } = {}) {
     root,
     dest: path.join(SKILLS_ROOT, name),
   });
-  const msg = `${name}: reinstalled ${files.length} file(s) from ${owner}/${repo}@${ref}`;
+  dep.resolved = makeResolved(sha);
+  const msg = `${name}: reinstalled ${files.length} file(s) from ${owner}/${repo}@${ref}#${shortSha(sha)}`;
   if (quiet) console.log(`  ok  ${msg}`);
   else log.success(msg);
+  return { localName: name, sha };
 }
 
 /**
@@ -862,21 +912,27 @@ export async function syncAll({ checkOnly = false } = {}) {
   const missing = items.filter((i) => i.status === 'missing');
   const errors = items.filter((i) => i.status === 'error');
 
-  for (const i of fresh) console.log(`  =  ${localNameOf(i.dep)}  up to date${i.r?.sha ? ` @ ${i.r.sha.slice(0, 8)}` : ''}`);
+  for (const i of fresh) {
+    const pin = i.dep.resolved?.sha ? shortSha(i.dep.resolved.sha) : 'unpinned';
+    const tip = i.r?.sha ? shortSha(i.r.sha) : '?';
+    console.log(`  =  ${localNameOf(i.dep)}  up to date  pin ${pin}  tip ${tip}`);
+  }
   for (const i of outdated) {
+    const pin = i.dep.resolved?.sha ? shortSha(i.dep.resolved.sha) : 'unpinned';
     console.log(
-      `  ^  ${i.r.localName}  +${i.r.remoteOnly.length} new / ${i.r.changed} changed @ ${i.r.sha.slice(0, 8)}`,
+      `  ^  ${i.r.localName}  +${i.r.remoteOnly.length} new / ${i.r.changed} changed  pin ${pin} → tip ${shortSha(i.r.sha)}`,
     );
   }
   for (const i of missing) console.log(`  x  ${localNameOf(i.dep)}  missing on disk`);
   for (const i of errors) console.error(`  !  ${localNameOf(i.dep)}  ${i.error}`);
 
   if (checkOnly) {
-    const ok = outdated.length === 0 && missing.length === 0 && errors.length === 0;
+    const unpinned = entries.filter((d) => !d.resolved?.sha).length;
+    const ok = outdated.length === 0 && missing.length === 0 && errors.length === 0 && unpinned === 0;
     console.log(
       ok
         ? `Check ok: ${fresh.length} up to date`
-        : `Check failed: ${outdated.length} outdated, ${missing.length} missing, ${errors.length} error(s)`,
+        : `Check failed: ${outdated.length} outdated, ${missing.length} missing, ${unpinned} unpinned, ${errors.length} error(s)`,
     );
     return {
       ok,
@@ -890,41 +946,72 @@ export async function syncAll({ checkOnly = false } = {}) {
 
   let synced = 0;
   let fail = errors.length;
+  let pinned = 0;
   const toFix = [...outdated, ...missing];
-  if (toFix.length === 0 && fail === 0) {
-    console.log(`Sync ok: ${fresh.length} already up to date`);
-    return { ok: true, fresh: fresh.length, synced: 0, missing: 0, errors: 0, details };
+
+  // Backfill pin for content that already matches tip
+  for (const i of fresh) {
+    if (i.r?.sha && (!i.dep.resolved?.sha || !i.dep.resolved?.syncedAt)) {
+      i.dep.resolved = makeResolved(i.r.sha);
+      pinned++;
+    }
   }
 
-  console.log(`Syncing ${toFix.length} skill(s)…`);
-  for (const item of toFix) {
-    try {
-      if (item.status === 'missing') await reinstallFromDep(item.dep, { quiet: true });
-      else await syncToLocal(item.r, item.dep, { quiet: true });
-      synced++;
-    } catch (e) {
-      fail++;
-      console.error(`  !  ${localNameOf(item.dep)}: ${e.message}`);
+  if (toFix.length > 0) {
+    console.log(`Syncing ${toFix.length} skill(s)…`);
+    for (const item of toFix) {
+      try {
+        if (item.status === 'missing') await reinstallFromDep(item.dep, { quiet: true });
+        else await syncToLocal(item.r, item.dep, { quiet: true });
+        synced++;
+      } catch (e) {
+        fail++;
+        console.error(`  !  ${localNameOf(item.dep)}: ${e.message}`);
+      }
     }
+  }
+
+  if (synced > 0 || pinned > 0) {
+    await writeJson(DEPS_FILE, deps);
+    if (pinned > 0) console.log(`  ok  pinned ${pinned} resolved commit(s) in dependencies.json`);
   }
 
   const ok = fail === 0;
-  console.log(
-    ok
-      ? `Sync ok: ${synced} updated, ${fresh.length} unchanged`
-      : `Sync finished with errors: ${synced} updated, ${fail} failed, ${fresh.length} unchanged`,
-  );
+  if (toFix.length === 0 && fail === 0) {
+    console.log(`Sync ok: ${fresh.length} already up to date${pinned ? `, pinned ${pinned}` : ''}`);
+  } else {
+    console.log(
+      ok
+        ? `Sync ok: ${synced} updated, ${fresh.length} unchanged`
+        : `Sync finished with errors: ${synced} updated, ${fail} failed, ${fresh.length} unchanged`,
+    );
+  }
 
-  // Keep README table in sync when upstream skill metadata may have changed
+  // Always refresh README after sync (content, pins, or both may have changed)
   try {
     const r = await updateReadmeSkillsTable({ quiet: true });
-    if (r.changed && !r.missingMarkers) {
-      console.log(`  ok  README skills table updated (${r.count})`);
-    } else if (r.missingMarkers) {
-      console.warn('  warn  README.md missing skills:table markers');
+    if (r.missingMarkers) {
+      console.error('  !  README.md missing skills:table markers');
+      return {
+        ok: false,
+        fresh: fresh.length,
+        synced,
+        missing: missing.length,
+        errors: fail + 1,
+        details,
+      };
     }
+    if (r.changed) console.log(`  ok  README skills table updated (${r.count})`);
   } catch (e) {
-    console.warn(`  warn  README table refresh skipped: ${e.message}`);
+    console.error(`  !  README table refresh failed: ${e.message}`);
+    return {
+      ok: false,
+      fresh: fresh.length,
+      synced,
+      missing: missing.length,
+      errors: fail + 1,
+      details,
+    };
   }
 
   return {
@@ -1038,12 +1125,14 @@ async function manageCollected() {
           msg(`Sync ${r.localName}…`);
           await syncToLocal(r, dep);
         }
+        // Persist resolved.sha / syncedAt written onto dep objects
+        await writeJson(DEPS_FILE, deps);
       }, `Synced ${toSync.length} skill(s)`);
     } catch (e) {
       log.error(e.message);
       return false;
     }
-    await refreshReadmeQuiet();
+    await refreshReadme();
     return true;
   }
 
@@ -1072,7 +1161,7 @@ async function manageCollected() {
     log.error(e.message);
     return false;
   }
-  await refreshReadmeQuiet();
+  await refreshReadme();
   return true;
 }
 
