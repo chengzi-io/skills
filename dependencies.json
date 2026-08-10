@@ -33,6 +33,22 @@
         "sha": "9075d1724a831411ab5cf138dd9b5cd406ffc2e2",
         "syncedAt": "2026-08-10T07:39:48.943Z"
       }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "speakeasy-api/skills",
+        "path": "skills/writing-openapi-specs",
+        "branch": "master"
+      },
+      "target": {
+        "plugin": "writing",
+        "name": "writing-openapi-specs"
+      },
+      "resolved": {
+        "sha": "d2eab5991ef881b39a26ab47432cf273c2c1abb5",
+        "syncedAt": "2026-08-10T13:48:10.334Z"
+      }
     }
   ]
 }

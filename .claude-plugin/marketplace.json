@@ -9,13 +9,14 @@
   "plugins": [
     {
       "name": "writing",
-      "description": "Requirements, BDD scenarios, and architecture decision records.",
+      "description": "Requirements, BDD, ADRs, and OpenAPI specification authoring.",
       "source": "./",
       "category": "productivity",
       "skills": [
         "./skills/writing/write-adr",
         "./skills/writing/write-bdd",
-        "./skills/writing/write-ears"
+        "./skills/writing/write-ears",
+        "./skills/writing-openapi-specs"
       ]
     },
     {

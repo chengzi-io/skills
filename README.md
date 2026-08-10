@@ -19,6 +19,7 @@ Auto-generated from local `SKILL.md` + `dependencies.json` + `marketplace.json`.
 | [`write-adr`](skills/writing/write-adr) | writing | local | — | Draft, review, or slim Architecture Decision Records (ADRs). Trigger on ADR, architecture decision, … |
 | [`write-bdd`](skills/writing/write-bdd) | writing | local | — | Write, review, and implement BDD Gherkin .feature files and step definitions. Use when the user asks… |
 | [`write-ears`](skills/writing/write-ears) | writing | local | — | Write and review EARS functional requirements and acceptance criteria. Use when the user asks to wri… |
+| [`writing-openapi-specs`](skills/writing-openapi-specs) | writing | speakeasy-api/skills@master#d2eab59 | 2026-08-10 | Reference guide for OpenAPI specification best practices, naming conventions, and expressing complex… |
 | [`emil-design-eng`](skills/emil-design-eng) | web | emilkowalski/skills@main#9075d17 | 2026-08-10 | This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, a… |
 | [`prototype`](skills/prototype) | web | emilkowalski/skills@main#9075d17 | 2026-08-10 | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual pic… |
 | [`grill-me`](skills/grill-me) | architecture | local | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
