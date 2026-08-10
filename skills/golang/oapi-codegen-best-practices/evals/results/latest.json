@@ -1,0 +1,12 @@
+{
+  "skill_name": "oapi-codegen-best-practices",
+  "latest_run": "2026-08-10-opencode-deepseek.json",
+  "model": "OpenCode/deepseek-v4-flash",
+  "summary": {
+    "trigger_agreement": "9/9",
+    "quality_with_skill": "26/26 assertions, 6/6 cases",
+    "quality_without_skill": "22/26 assertions, 3/6 cases",
+    "skill_delta_assertions": 4,
+    "skill_delta_cases": 3
+  }
+}

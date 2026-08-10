@@ -39,6 +39,15 @@
       ]
     },
     {
+      "name": "golang",
+      "description": "Go engineering: HTTP codegen, API wiring, and server tooling.",
+      "source": "./",
+      "category": "engineering",
+      "skills": [
+        "./skills/golang/oapi-codegen-best-practices"
+      ]
+    },
+    {
       "name": "meta",
       "description": "Author and maintain Agent Skills themselves.",
       "source": "./",

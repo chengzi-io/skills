@@ -23,6 +23,7 @@ Auto-generated from local `SKILL.md` + `dependencies.json` + `marketplace.json`.
 | [`prototype`](skills/prototype) | web | emilkowalski/skills@main#9075d17 | 2026-08-10 | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual pic… |
 | [`grill-me`](skills/grill-me) | architecture | local | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
 | [`screaming-architecture`](skills/screaming-architecture) | architecture | local | — | Organise and review package structure so directories scream business capabilities (package-by-featur… |
+| [`oapi-codegen-best-practices`](skills/golang/oapi-codegen-best-practices) | golang | local | — | Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server… |
 | [`write-skill`](skills/write-skill) | meta | local | — | Creates or updates Agent Skills following the current agentskills.io specification and guidance. Use… |
 
 <!-- skills:table:end -->

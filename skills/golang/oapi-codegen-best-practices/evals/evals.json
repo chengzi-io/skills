@@ -1,0 +1,90 @@
+{
+  "skill_name": "oapi-codegen-best-practices",
+  "notes": "Quality evals: run each prompt twice — with skill forced (read SKILL.md + needed reference/) and without skill (no skill files). Grade binary assertions. Trigger evals live in trigger.json.",
+  "modes": [
+    {
+      "id": "with_skill",
+      "description": "Force-load skill: read SKILL.md and only needed reference/* before answering."
+    },
+    {
+      "id": "without_skill",
+      "description": "General knowledge only; do not read .agents/skills/oapi-codegen-best-practices."
+    }
+  ],
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Greenfield Go service: OpenAPI 3 for a pets API. Recommend oapi-codegen (v2) generate config for Gin, how to implement handlers, and how to wire request validation + Bearer auth. Keep it concrete (YAML + Go sketches).",
+      "expected_output": "YAML with models, gin-server, strict-server, embedded-spec; StrictServerInterface + NewStrictHandler + RegisterHandlers; gin-middleware with GetSwagger, Servers cleared, AuthenticationFunc for Bearer.",
+      "files": [],
+      "assertions": [
+        "Uses github.com/oapi-codegen/oapi-codegen/v2 (not deepmap) or equivalent current module path.",
+        "Generate config enables gin-server, strict-server, models, and embedded-spec (or clearly equivalent).",
+        "Does not enable chi-server together with gin-server in the same generate block.",
+        "Handlers implement StrictServerInterface (or clearly describe wrapping NewStrictHandler).",
+        "Uses github.com/oapi-codegen/gin-middleware (or correct gin validation middleware) for request validation.",
+        "Clears or disables OpenAPI Servers host matching (e.g. swagger.Servers = nil) or explains why not.",
+        "Auth is enforced via middleware AuthenticationFunc (or openapi3filter Options), not only per-handler checks."
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Same pets API but the team standardizes on Chi, not Gin. Give the oapi-codegen config differences and the router wiring, including validation middleware package choice.",
+      "expected_output": "chi-server + strict + models + embedded-spec; HandlerFromMux/HandlerWithOptions; nethttp-middleware; same strict handler signatures as Gin.",
+      "files": [],
+      "assertions": [
+        "Generate config uses chi-server: true (not gin-server).",
+        "Registration uses HandlerFromMux or HandlerWithOptions.",
+        "Validation middleware is github.com/oapi-codegen/nethttp-middleware (or clearly net/http-compatible oapi middleware).",
+        "States that strict handler signatures are framework-agnostic / same as Gin strict."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Production API returns HTTP 400 with message like 'no matching operation was found' for requests that look valid. Spec has servers with production URLs. App is behind a reverse proxy. Diagnose and fix for an oapi-codegen + validation middleware setup.",
+      "expected_output": "Blame Servers/host validation and/or BaseURL mount mismatch; recommend clearing Servers and aligning path prefixes.",
+      "files": [],
+      "assertions": [
+        "Identifies OpenAPI Servers / Host validation as a likely cause.",
+        "Recommends clearing swagger.Servers (or equivalent) when reverse-proxy Host should not be validated against spec servers.",
+        "Mentions mount path / BaseURL / path prefix mismatch as another common cause.",
+        "Does not recommend disabling all validation middleware as the primary fix."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "StrictServerInterface handler for GET /users/{id}. Domain service returns domain.ErrNotFound or a DB error. How should the handler return 404 vs 500? Show the Go pattern.",
+      "expected_output": "404 via typed *404JSONResponse with nil error; unexpected errors returned as (nil, err) for ResponseErrorHandlerFunc.",
+      "files": [],
+      "assertions": [
+        "Maps expected not-found to a typed 404 response object with error == nil.",
+        "Returns unexpected errors as (nil, err) (or equivalent) leading to 500 via ResponseErrorHandlerFunc.",
+        "Does not recommend writing directly to http.ResponseWriter inside a strict handler as the main pattern.",
+        "Does not recommend using bare error return for documented 404 business outcomes."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Review this plan: hand-edit server.gen.go to rename a type; skip committing generated files; rely on c.ShouldBindJSON in Gin after enabling strict-server; re-enable compatibility.enable-auth-scopes-on-context for new auth. What is wrong?",
+      "expected_output": "Rejects hand-editing gen, not committing gen, double-bind under strict, and deprecated scopes-on-context for new code.",
+      "files": [],
+      "assertions": [
+        "Rejects hand-editing generated files; fix spec/config and regenerate instead.",
+        "Recommends committing generated code and/or CI drift checks.",
+        "Warns against double-binding the body when strict-server already unmarshals it.",
+        "Rejects enable-auth-scopes-on-context for new designs in favor of validation middleware AuthenticationFunc."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Only rename an enum description in openapi.yaml for better docs. No paths or schemas change. Do I need oapi-codegen best practices / to regenerate server stubs?",
+      "expected_output": "Doc-only OpenAPI change; this skill's server wiring is out of scope; regenerate only if embedded-spec must match served docs.",
+      "files": [],
+      "assertions": [
+        "Does not force a full Gin/Chi rewiring guide for a doc-only description change.",
+        "Points to OpenAPI writing guidance or treats it as spec documentation, not handler redesign.",
+        "If regeneration is mentioned, limits it to embedded-spec / served contract freshness rather than new handler architecture."
+      ]
+    }
+  ]
+}

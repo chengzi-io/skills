@@ -1,0 +1,226 @@
+{
+  "skill_name": "oapi-codegen-best-practices",
+  "date": "2026-08-10",
+  "model": "OpenCode/deepseek-v4-flash",
+  "runner": "spawn_subagent (general-purpose, read-only); not grok -p",
+  "trigger": {
+    "source": "evals/trigger.json",
+    "should_activate": {
+      "ids": [
+        "U0",
+        "U1",
+        "U2",
+        "U3",
+        "U4"
+      ],
+      "hits": 5,
+      "total": 5
+    },
+    "should_not_activate": {
+      "ids": [
+        "U5",
+        "U6",
+        "U7",
+        "U8"
+      ],
+      "hits": 4,
+      "total": 4
+    },
+    "agreement": "9/9",
+    "per_case": [
+      {
+        "id": "U0",
+        "gold": "YES",
+        "pred": "YES",
+        "confidence": "high",
+        "pass": true
+      },
+      {
+        "id": "U1",
+        "gold": "YES",
+        "pred": "YES",
+        "confidence": "high",
+        "pass": true
+      },
+      {
+        "id": "U2",
+        "gold": "YES",
+        "pred": "YES",
+        "confidence": "high",
+        "pass": true
+      },
+      {
+        "id": "U3",
+        "gold": "YES",
+        "pred": "YES",
+        "confidence": "high",
+        "pass": true
+      },
+      {
+        "id": "U4",
+        "gold": "YES",
+        "pred": "YES",
+        "confidence": "high",
+        "pass": true
+      },
+      {
+        "id": "U5",
+        "gold": "NO",
+        "pred": "NO",
+        "confidence": "medium",
+        "pass": true
+      },
+      {
+        "id": "U6",
+        "gold": "NO",
+        "pred": "NO",
+        "confidence": "high",
+        "pass": true
+      },
+      {
+        "id": "U7",
+        "gold": "NO",
+        "pred": "NO",
+        "confidence": "medium",
+        "pass": true
+      },
+      {
+        "id": "U8",
+        "gold": "NO",
+        "pred": "NO",
+        "confidence": "high",
+        "pass": true
+      }
+    ]
+  },
+  "quality": {
+    "source": "evals/evals.json",
+    "with_skill": {
+      "case_pass": "6/6",
+      "assertion_pass": "26/26",
+      "assertion_rate": 1.0,
+      "cases": [
+        {
+          "id": 0,
+          "assertions_pass": "7/7",
+          "case_pass": true,
+          "notes": "Full stack aligned; minor healthz/group ordering nit not asserted."
+        },
+        {
+          "id": 1,
+          "assertions_pass": "4/4",
+          "case_pass": true,
+          "notes": "chi-server + HandlerFromMux + nethttp-middleware + portable strict."
+        },
+        {
+          "id": 2,
+          "assertions_pass": "4/4",
+          "case_pass": true,
+          "notes": "Servers Host + BaseURL; does not disable validator as primary fix."
+        },
+        {
+          "id": 3,
+          "assertions_pass": "4/4",
+          "case_pass": true,
+          "notes": "Typed 404 with nil error; (nil, err) \u2192 500."
+        },
+        {
+          "id": 4,
+          "assertions_pass": "4/4",
+          "case_pass": true,
+          "notes": "Rejects hand-edit, skip-commit, double-bind, scopes-on-context."
+        },
+        {
+          "id": 5,
+          "assertions_pass": "3/3",
+          "case_pass": true,
+          "notes": "Doc-only boundary respected."
+        }
+      ]
+    },
+    "without_skill": {
+      "case_pass": "3/6",
+      "assertion_pass": "22/26",
+      "assertion_rate": 0.846,
+      "cases": [
+        {
+          "id": 0,
+          "assertions_pass": "7/7",
+          "case_pass": true,
+          "failed_assertions": [],
+          "notes": "Strong general knowledge of oapi-codegen v2 + Gin strict + gin-middleware."
+        },
+        {
+          "id": 1,
+          "assertions_pass": "3/4",
+          "case_pass": false,
+          "failed_assertions": [
+            "Validation middleware is github.com/oapi-codegen/nethttp-middleware (or clearly net/http-compatible oapi middleware)."
+          ],
+          "notes": "Recommended go-playground/validator; kin-openapi only optional; no nethttp-middleware."
+        },
+        {
+          "id": 2,
+          "assertions_pass": "2/4",
+          "case_pass": false,
+          "failed_assertions": [
+            "Identifies OpenAPI Servers / Host validation as a likely cause.",
+            "Recommends clearing swagger.Servers (or equivalent) when reverse-proxy Host should not be validated against spec servers."
+          ],
+          "notes": "Incorrectly treated servers as docs-only; primary fix was path prefix stripping."
+        },
+        {
+          "id": 3,
+          "assertions_pass": "4/4",
+          "case_pass": true,
+          "failed_assertions": [],
+          "notes": "Strict 404/500 pattern known without skill."
+        },
+        {
+          "id": 4,
+          "assertions_pass": "3/4",
+          "case_pass": false,
+          "failed_assertions": [
+            "Rejects enable-auth-scopes-on-context for new designs in favor of validation middleware AuthenticationFunc."
+          ],
+          "notes": "Rejected compat flag but steered to request-object scopes / custom middleware, not AuthenticationFunc."
+        },
+        {
+          "id": 5,
+          "assertions_pass": "3/3",
+          "case_pass": true,
+          "failed_assertions": [],
+          "notes": "Doc-only change correctly out of scope for rewiring."
+        }
+      ]
+    },
+    "delta": {
+      "assertion_pass": "+4 (22\u219226)",
+      "case_pass": "+3 (3\u21926)",
+      "skill_value_hotspots": [
+        "Case 2: Servers Host validation + swagger.Servers = nil",
+        "Case 1: Chi \u2192 nethttp-middleware",
+        "Case 4: AuthenticationFunc over enable-auth-scopes-on-context"
+      ]
+    }
+  },
+  "subagent_ids": {
+    "with_skill": {
+      "0": "019feb37-ef08-7a71-ae8b-29171151d83d",
+      "1": "019feb37-ef08-7a71-ae8b-2924a0766ed2",
+      "2": "019feb37-ef08-7a71-ae8b-293ef77d71ac",
+      "3": "019feb37-ef08-7a71-ae8b-2945ed78210a",
+      "4": "019feb37-ef08-7a71-ae8b-2955267f18b2",
+      "5": "019feb37-ef08-7a71-ae8b-296f7b884712"
+    },
+    "without_skill": {
+      "0": "019feb3c-f0fc-7f73-a248-4abfb2d650ea",
+      "1": "019feb3c-f0fc-7f73-a248-4aca2854bf60",
+      "2": "019feb3c-f0fc-7f73-a248-4ad9a7b40fad",
+      "3": "019feb3c-f0fc-7f73-a248-4ae7da00d08f",
+      "4": "019feb3c-f0fc-7f73-a248-4af7c02ba58a",
+      "5": "019feb3c-f0fc-7f73-a248-4b05d97cd6ab"
+    },
+    "trigger": "019feb3c-f0fc-7f73-a248-4aa4890cb473"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "skill_name": "oapi-codegen-best-practices",
+  "skill_description": "Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server, Gin and Chi integration, validation middleware, auth, project layout, and codegen configuration. Use when adding or regenerating oapi-codegen stubs, choosing gin-server vs chi-server, implementing StrictServerInterface, wiring request validation/auth middleware, writing oapi-codegen YAML config, or reviewing OpenAPI→Go server plumbing.",
+  "method": "Given only skill name + description (no SKILL.md body), decide load YES/NO for each user message.",
+  "cases": [
+    {
+      "id": "U0",
+      "gold": "YES",
+      "prompt": "Greenfield Go service: OpenAPI 3 for a pets API. Recommend oapi-codegen (v2) generate config for Gin, how to implement handlers, and how to wire request validation + Bearer auth."
+    },
+    {
+      "id": "U1",
+      "gold": "YES",
+      "prompt": "Same pets API but the team standardizes on Chi, not Gin. Give the oapi-codegen config differences and the router wiring, including validation middleware package choice."
+    },
+    {
+      "id": "U2",
+      "gold": "YES",
+      "prompt": "Production API returns HTTP 400 with message like 'no matching operation was found' for requests that look valid. Spec has servers with production URLs. App is behind a reverse proxy. Diagnose and fix for an oapi-codegen + validation middleware setup."
+    },
+    {
+      "id": "U3",
+      "gold": "YES",
+      "prompt": "StrictServerInterface handler for GET /users/{id}. Domain service returns domain.ErrNotFound or a DB error. How should the handler return 404 vs 500? Show the Go pattern."
+    },
+    {
+      "id": "U4",
+      "gold": "YES",
+      "prompt": "Review this plan: hand-edit server.gen.go to rename a type; skip committing generated files; rely on c.ShouldBindJSON in Gin after enabling strict-server; re-enable compatibility.enable-auth-scopes-on-context for new auth. What is wrong?"
+    },
+    {
+      "id": "U5",
+      "gold": "NO",
+      "prompt": "Only rename an enum description in openapi.yaml for better docs. No paths or schemas change. Do I need oapi-codegen best practices / to regenerate server stubs?"
+    },
+    {
+      "id": "U6",
+      "gold": "NO",
+      "prompt": "How do I use golang.org/x/sync/errgroup for concurrent TCP health checks with a worker pool limit?"
+    },
+    {
+      "id": "U7",
+      "gold": "NO",
+      "prompt": "Write better OpenAPI enum naming conventions and examples for our public REST API (string enums, not numeric). No Go code generation discussion."
+    },
+    {
+      "id": "U8",
+      "gold": "NO",
+      "prompt": "Add a plain Gin GET /healthz that returns {\"status\":\"ok\"}. No OpenAPI, no code generation."
+    }
+  ]
+}
