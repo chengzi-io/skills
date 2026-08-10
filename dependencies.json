@@ -1,5 +1,30 @@
 {
   "$schema": "./dependencies.schema.json",
   "version": 1,
-  "dependencies": []
+  "dependencies": [
+    {
+      "type": "skill",
+      "source": {
+        "repo": "emilkowalski/skills",
+        "path": "skills/emil-design-eng",
+        "branch": "main"
+      },
+      "target": {
+        "plugin": "web",
+        "name": "emil-design-eng"
+      }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "emilkowalski/skills",
+        "path": "skills/prototype",
+        "branch": "main"
+      },
+      "target": {
+        "plugin": "web",
+        "name": "prototype"
+      }
+    }
+  ]
 }

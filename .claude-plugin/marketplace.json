@@ -4,14 +4,48 @@
   "description": "A collection of reusable Agent Skills for development workflows, productivity, and quality engineering.",
   "owner": {
     "name": "JoJoJotarou",
-    "url": "https://github.com/JoJoJotarou"
+    "url": "https://github.com/chengzi-io/skills"
   },
   "plugins": [
     {
-      "name": "chengzi-skills",
-      "description": "Reusable Agent Skills covering development workflows, decision-making, and quality engineering.",
+      "name": "writing",
+      "description": "Requirements, BDD scenarios, and architecture decision records.",
       "source": "./",
-      "category": "engineering"
+      "category": "productivity",
+      "skills": [
+        "./skills/writing/write-adr",
+        "./skills/writing/write-bdd",
+        "./skills/writing/write-ears"
+      ]
+    },
+    {
+      "name": "web",
+      "description": "UI craft, design engineering, and interactive prototyping.",
+      "source": "./",
+      "category": "design",
+      "skills": [
+        "./skills/emil-design-eng",
+        "./skills/prototype"
+      ]
+    },
+    {
+      "name": "architecture",
+      "description": "Structure, packaging, and decision stress-testing.",
+      "source": "./",
+      "category": "engineering",
+      "skills": [
+        "./skills/screaming-architecture",
+        "./skills/grill-me"
+      ]
+    },
+    {
+      "name": "meta",
+      "description": "Author and maintain Agent Skills themselves.",
+      "source": "./",
+      "category": "productivity",
+      "skills": [
+        "./skills/write-skill"
+      ]
     }
   ]
 }

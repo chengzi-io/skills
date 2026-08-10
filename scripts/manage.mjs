@@ -6,6 +6,8 @@
  *   npm run manage                         interactive menu
  *   npm run sync                           CI: sync all third-party skills
  *   npm run sync:check                     CI: fail if any skill is outdated/missing
+ *   npm run readme                         regenerate skills table in README.md
+ *   npm run readme -- --check              fail if README table is stale
  *   node scripts/manage.mjs --list-repo <owner/repo>
  *
  * Flow: repo → find SKILL.md → pick → download to skills/<name>/ →
@@ -23,9 +25,12 @@ import YAML from 'yaml';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEPS_FILE = path.join(ROOT, 'dependencies.json');
 const MKT_FILE = path.join(ROOT, '.claude-plugin', 'marketplace.json');
+const README_FILE = path.join(ROOT, 'README.md');
 const SKILLS_ROOT = path.join(ROOT, 'skills');
 const GH_API = 'https://api.github.com';
 const CONCURRENCY = 6;
+const README_START = '<!-- skills:table:start -->';
+const README_END = '<!-- skills:table:end -->';
 const SKIP_DIRS = new Set([
   'node_modules', '.git', 'dist', 'build', '__pycache__', '.github', 'docs', 'examples', 'tests',
 ]);
@@ -36,6 +41,8 @@ const exists = async (p) => access(p).then(() => true).catch(() => false);
 const safeName = (n) => String(n).replace(/[^a-zA-Z0-9._-]/g, '-') || 'skill';
 const truncate = (s, n = 60) => (s.length > n ? `${s.slice(0, n)}…` : s);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const oneLine = (s, n = 100) => truncate(String(s || '').replace(/\s+/g, ' ').trim(), n);
+const mdCell = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 
 /** Section title + lines. Avoid clack note() (CJK breaks the box width). */
 function printSection(title, lines) {
@@ -512,15 +519,16 @@ async function collectSkill() {
       { pluginOrder: [...new Set(results.map((r) => r.group))] },
     ),
   );
+  await refreshReadmeQuiet();
   log.message('Tip: claude plugin validate .claude-plugin/marketplace.json');
   return true;
 }
 
-/* ---------------- List all skills ---------------- */
+/* ---------------- List / README skills table ---------------- */
 
-async function listCollected() {
+/** Collect skill rows from local dirs + dependencies (+ marketplace plugin). */
+export async function collectSkillRows() {
   const deps = await readJson(DEPS_FILE);
-  const mkt = await readJson(MKT_FILE);
   const localDirs = await findLocalSkills();
   const localSet = new Set(localDirs);
   const pluginOf = await skillToPlugin();
@@ -532,7 +540,7 @@ async function listCollected() {
 
   // union: every local skill + every registered dep (even if missing on disk)
   const paths = new Set([...localDirs, ...depByPath.keys()]);
-  const rows = [...paths].sort().map((skillPath) => {
+  const rows = await Promise.all([...paths].sort().map(async (skillPath) => {
     const name = skillPath.split('/').pop();
     const plugin = pluginOf.get(skillPath) || '-';
     const dep = depByPath.get(skillPath);
@@ -541,15 +549,108 @@ async function listCollected() {
       const ref = dep.source.branch || dep.source.tag || dep.source.release || '';
       source = ref ? `${dep.source.repo}@${ref}` : dep.source.repo;
     }
+
+    let description = '';
+    if (localSet.has(skillPath)) {
+      try {
+        const raw = await readFile(path.join(ROOT, skillPath, 'SKILL.md'), 'utf8');
+        const fm = parseFrontmatter(raw);
+        description = oneLine(fm?.description, 100);
+      } catch {
+        description = '';
+      }
+    }
+
     return {
       name,
       plugin,
       source,
+      description,
       local: localSet.has(skillPath) ? 'yes' : 'no',
       path: skillPath,
     };
+  }));
+
+  // Prefer marketplace plugin order, then name — keeps README table grouped
+  const mkt = await readJson(MKT_FILE);
+  const pluginRank = new Map((mkt.plugins || []).map((p, i) => [p.name, i]));
+  rows.sort((a, b) => {
+    const ra = pluginRank.has(a.plugin) ? pluginRank.get(a.plugin) : 999;
+    const rb = pluginRank.has(b.plugin) ? pluginRank.get(b.plugin) : 999;
+    if (ra !== rb) return ra - rb;
+    return a.name.localeCompare(b.name);
   });
 
+  return rows;
+}
+
+/** Markdown table for README (Skill / Plugin / Source / Description). */
+export function renderSkillsTable(rows) {
+  const header = '| Skill | Plugin | Source | Description |';
+  const sep = '|-------|--------|--------|-------------|';
+  if (rows.length === 0) {
+    return [header, sep, '| _(none)_ | | | |'].join('\n');
+  }
+
+  const body = rows.map((r) => {
+    const skill = r.local === 'no'
+      ? `\`${r.name}\` ⚠️ missing`
+      : `[\`${r.name}\`](${r.path})`;
+    return `| ${mdCell(skill)} | ${mdCell(r.plugin)} | ${mdCell(r.source)} | ${mdCell(r.description)} |`;
+  });
+  return [header, sep, ...body].join('\n');
+}
+
+/**
+ * Refresh the auto-generated skills table between markers in README.md.
+ * @param {{ checkOnly?: boolean, quiet?: boolean }} [opts]
+ * @returns {Promise<{ changed: boolean, count: number, missingMarkers?: boolean }>}
+ */
+export async function updateReadmeSkillsTable({ checkOnly = false, quiet = false } = {}) {
+  const rows = await collectSkillRows();
+  const table = renderSkillsTable(rows);
+  const block = `${README_START}\n\n${table}\n\n${README_END}`;
+
+  let readme;
+  try {
+    readme = await readFile(README_FILE, 'utf8');
+  } catch (e) {
+    throw new Error(`README.md unreadable: ${e.message}`);
+  }
+
+  if (!readme.includes(README_START) || !readme.includes(README_END)) {
+    return { changed: true, count: rows.length, missingMarkers: true };
+  }
+
+  const re = new RegExp(
+    `${README_START.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?${README_END.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+  );
+  const next = readme.replace(re, () => block);
+  const changed = next !== readme;
+
+  if (checkOnly || !changed) {
+    return { changed, count: rows.length };
+  }
+
+  await writeFile(README_FILE, next, 'utf8');
+  if (!quiet) log.success(`README skills table updated (${rows.length} skill(s))`);
+  return { changed: true, count: rows.length };
+}
+
+/** Best-effort README refresh after mutations (never throws to callers). */
+async function refreshReadmeQuiet() {
+  try {
+    const r = await updateReadmeSkillsTable({ quiet: true });
+    if (r.missingMarkers) log.warn('README.md missing <!-- skills:table:start/end --> markers');
+    else if (r.changed) log.success(`README skills table updated (${r.count})`);
+  } catch (e) {
+    log.warn(`README table refresh skipped: ${e.message}`);
+  }
+}
+
+async function listCollected() {
+  const mkt = await readJson(MKT_FILE);
+  const rows = await collectSkillRows();
   const pluginOrder = (mkt.plugins || []).map((p) => p.name);
   printSection('All skills', formatSkillList(rows, { pluginOrder }));
   return true;
@@ -605,6 +706,15 @@ async function validateAll() {
       if (!fm) { err(`${dir}/SKILL.md: missing frontmatter`); continue; }
       if (!fm.name) err(`${dir}/SKILL.md: missing name`);
       if (!fm.description) err(`${dir}/SKILL.md: missing description`);
+    }
+  });
+
+  await section('README skills table ok', async () => {
+    const r = await updateReadmeSkillsTable({ checkOnly: true });
+    if (r.missingMarkers) {
+      err('README.md missing <!-- skills:table:start --> / <!-- skills:table:end --> markers');
+    } else if (r.changed) {
+      err('README skills table is stale — run: pnpm readme');
     }
   });
 
@@ -804,6 +914,19 @@ export async function syncAll({ checkOnly = false } = {}) {
       ? `Sync ok: ${synced} updated, ${fresh.length} unchanged`
       : `Sync finished with errors: ${synced} updated, ${fail} failed, ${fresh.length} unchanged`,
   );
+
+  // Keep README table in sync when upstream skill metadata may have changed
+  try {
+    const r = await updateReadmeSkillsTable({ quiet: true });
+    if (r.changed && !r.missingMarkers) {
+      console.log(`  ok  README skills table updated (${r.count})`);
+    } else if (r.missingMarkers) {
+      console.warn('  warn  README.md missing skills:table markers');
+    }
+  } catch (e) {
+    console.warn(`  warn  README table refresh skipped: ${e.message}`);
+  }
+
   return {
     ok,
     fresh: fresh.length,
@@ -920,6 +1043,7 @@ async function manageCollected() {
       log.error(e.message);
       return false;
     }
+    await refreshReadmeQuiet();
     return true;
   }
 
@@ -948,6 +1072,7 @@ async function manageCollected() {
     log.error(e.message);
     return false;
   }
+  await refreshReadmeQuiet();
   return true;
 }
 
@@ -1023,6 +1148,39 @@ async function runCli(argv) {
     return;
   }
 
+  // Regenerate README skills table from local skills + dependencies
+  //   node scripts/manage.mjs readme
+  //   node scripts/manage.mjs readme --check
+  if (cmd === 'readme') {
+    const checkOnly = rest.includes('--check');
+    try {
+      const r = await updateReadmeSkillsTable({ checkOnly, quiet: checkOnly });
+      if (r.missingMarkers) {
+        console.error('README.md missing <!-- skills:table:start --> / <!-- skills:table:end --> markers');
+        process.exitCode = 1;
+        return;
+      }
+      if (checkOnly) {
+        if (r.changed) {
+          console.error(`README skills table is stale (${r.count} skill(s)) — run: pnpm readme`);
+          process.exitCode = 1;
+        } else {
+          console.log(`README skills table ok (${r.count} skill(s))`);
+        }
+        return;
+      }
+      console.log(
+        r.changed
+          ? `README skills table updated (${r.count} skill(s))`
+          : `README skills table already up to date (${r.count} skill(s))`,
+      );
+    } catch (e) {
+      console.error(e.message);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   if (cmd === '--help' || cmd === '-h' || cmd === 'help') {
     console.log(`chengzi-skills manager
 
@@ -1030,6 +1188,8 @@ Usage:
   npm run manage                 Interactive menu
   npm run sync                   Sync all third-party skills from upstream
   npm run sync:check             Check only (exit 1 if outdated/missing)
+  npm run readme                 Regenerate skills table in README.md
+  npm run readme -- --check      Fail if README table is stale
   node scripts/manage.mjs validate
   node scripts/manage.mjs --list-repo <owner/repo>
 

@@ -33,6 +33,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run sync
 
+      # sync also refreshes README; keep explicit for clarity / if markers drift
+      - name: Refresh README skills table
+        run: npm run readme
+
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
         with:
@@ -43,9 +47,11 @@ jobs:
 
             - Source of truth: upstream `repo` + `path` (+ branch/tag/release)
             - Local-only files under a skill dir are kept
+            - README skills table regenerated
 
             Workflow: `.github/workflows/sync-skills.yml`
           branch: chore/sync-skills
           delete-branch: true
           add-paths: |
             skills/**
+            README.md

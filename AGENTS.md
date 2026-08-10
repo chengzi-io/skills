@@ -1,7 +1,7 @@
 - Follow @GIT.md
 
-- Use [write-skill](skills/write-skill/SKILL.md) for creates or updates skills - **Mandatory**
+- Use [write-skill](skills/write-skill/SKILL.md) when creating or updating skills — **Mandatory**
 
-## Plugin Validation - **Mandatory**
+## Plugin validation — **Mandatory**
 
-- Run `claude plugin validate .` & `claude plugin validate .claude-plugin/plugin.json` before every commit
+- Before every commit: `claude plugin validate .`
