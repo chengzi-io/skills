@@ -1,0 +1,51 @@
+# Sync third-party skills from upstream (dependencies.json) and open a PR when files change.
+name: Sync skills
+
+on:
+  schedule:
+    # Monday 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Sync from upstream
+        env:
+          # Higher rate limit for GitHub tree/raw APIs
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run sync
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'chore: sync third-party skills'
+          title: 'chore: sync third-party skills'
+          body: |
+            Automated sync of third-party skills listed in `dependencies.json`.
+
+            - Source of truth: upstream `repo` + `path` (+ branch/tag/release)
+            - Local-only files under a skill dir are kept
+
+            Workflow: `.github/workflows/sync-skills.yml`
+          branch: chore/sync-skills
+          delete-branch: true
+          add-paths: |
+            skills/**

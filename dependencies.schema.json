@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "./dependencies.schema.json",
+  "title": "Plugin Dependency Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "dependencies"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dependency"
+      }
+    }
+  },
+  "$defs": {
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "source", "target"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["skill", "agent"]
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "skill" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "source": {
+                "allOf": [
+                  { "$ref": "#/$defs/source" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "pattern": "^.+(?:\\/SKILL\\.md)?$"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "agent" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "source": {
+                "allOf": [
+                  { "$ref": "#/$defs/source" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "pattern": "^.+\\.md$"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "path"],
+      "properties": {
+        "repo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+\\/[A-Za-z0-9_.-]+$"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1
+        },
+        "release": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "branch": { "type": "string", "minLength": 1 }
+          },
+          "required": ["branch"]
+        },
+        {
+          "properties": {
+            "tag": { "type": "string", "minLength": 1 }
+          },
+          "required": ["tag"]
+        },
+        {
+          "properties": {
+            "release": { "type": "string", "minLength": 1 }
+          },
+          "required": ["release"]
+        },
+        {
+          "not": {
+            "anyOf": [
+              { "required": ["branch"] },
+              { "required": ["tag"] },
+              { "required": ["release"] }
+            ]
+          }
+        }
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plugin"],
+      "properties": {
+        "plugin": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+        }
+      }
+    }
+  }
+}

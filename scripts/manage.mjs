@@ -1,0 +1,1058 @@
+#!/usr/bin/env node
+/**
+ * chengzi-skills manager — collect / list / sync / remove skills
+ *
+ * Usage:
+ *   npm run manage                         interactive menu
+ *   npm run sync                           CI: sync all third-party skills
+ *   npm run sync:check                     CI: fail if any skill is outdated/missing
+ *   node scripts/manage.mjs --list-repo <owner/repo>
+ *
+ * Flow: repo → find SKILL.md → pick → download to skills/<name>/ →
+ *       write dependencies.json + marketplace.json
+ */
+import {
+  select, text, confirm, multiselect, groupMultiselect,
+  isCancel, intro, outro, log, spinner,
+} from '@clack/prompts';
+import { readFile, writeFile, mkdir, readdir, rm, rename, access } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import YAML from 'yaml';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DEPS_FILE = path.join(ROOT, 'dependencies.json');
+const MKT_FILE = path.join(ROOT, '.claude-plugin', 'marketplace.json');
+const SKILLS_ROOT = path.join(ROOT, 'skills');
+const GH_API = 'https://api.github.com';
+const CONCURRENCY = 6;
+const SKIP_DIRS = new Set([
+  'node_modules', '.git', 'dist', 'build', '__pycache__', '.github', 'docs', 'examples', 'tests',
+]);
+
+/* ---------------- helpers ---------------- */
+
+const exists = async (p) => access(p).then(() => true).catch(() => false);
+const safeName = (n) => String(n).replace(/[^a-zA-Z0-9._-]/g, '-') || 'skill';
+const truncate = (s, n = 60) => (s.length > n ? `${s.slice(0, n)}…` : s);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Section title + lines. Avoid clack note() (CJK breaks the box width). */
+function printSection(title, lines) {
+  log.step(title);
+  log.message(lines.length ? lines.join('\n') : '(none)');
+}
+
+/** marketplace skill path -> plugin name (key without leading ./) */
+async function skillToPlugin() {
+  const mkt = await readJson(MKT_FILE);
+  const map = new Map();
+  for (const p of mkt.plugins || []) {
+    for (const s of p.skills || []) {
+      map.set(s.replace(/^\.\//, ''), p.name);
+    }
+  }
+  return map;
+}
+
+/** Build readable multi-line list text (groups + air, no dense key=value dump). */
+function formatSkillList(rows, { pluginOrder = [] } = {}) {
+  const byPlugin = new Map();
+  for (const row of rows) {
+    const key = row.plugin === '-' ? '(none)' : row.plugin;
+    if (!byPlugin.has(key)) byPlugin.set(key, []);
+    byPlugin.get(key).push(row);
+  }
+
+  const ordered = [];
+  for (const name of pluginOrder) {
+    if (byPlugin.has(name)) {
+      ordered.push([name, byPlugin.get(name)]);
+      byPlugin.delete(name);
+    }
+  }
+  if (byPlugin.has('(none)')) {
+    ordered.push(['(none)', byPlugin.get('(none)')]);
+    byPlugin.delete('(none)');
+  }
+  for (const entry of byPlugin) ordered.push(entry);
+
+  const third = rows.filter((r) => r.source !== 'local').length;
+  const missing = rows.filter((r) => r.local === 'no').length;
+  const lines = [
+    `total ${rows.length}   third-party ${third}   missing ${missing}`,
+    '',
+  ];
+
+  for (const [plugin, items] of ordered) {
+    items.sort((a, b) => a.name.localeCompare(b.name));
+    lines.push(`[${plugin}]  ${items.length}`);
+    lines.push('');
+    for (const item of items) {
+      const mark = item.local === 'no' ? '  ! missing' : '';
+      lines.push(`  ${item.name}${mark}`);
+      lines.push(`    source  ${item.source}`);
+      lines.push(`    path    ${item.path}`);
+      lines.push('');
+    }
+  }
+
+  // trim trailing blank lines
+  while (lines.length && lines[lines.length - 1] === '') lines.pop();
+  return lines;
+}
+
+/** Local dir name: target.name, else last segment of source.path */
+export function localNameOf(dep) {
+  return safeName(dep.target?.name || dep.source.path.split('/').pop() || 'skill');
+}
+
+export function parseRepo(input) {
+  const m = input.trim().match(/(?:github\.com\/)?([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/);
+  return m ? { owner: m[1], repo: m[2] } : null;
+}
+
+async function readJson(file) {
+  return JSON.parse(await readFile(file, 'utf8'));
+}
+
+/** Atomic JSON write (tmp + rename) */
+async function writeJson(file, data) {
+  const tmp = `${file}.${process.pid}.tmp`;
+  await writeFile(tmp, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  await rename(tmp, file);
+}
+
+/** Limited concurrency map (rate-limit friendly) */
+async function mapPool(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) || 1 }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+async function withSpinner(startMsg, fn, doneMsg) {
+  const s = spinner();
+  s.start(startMsg);
+  try {
+    const result = await fn((msg) => s.message(msg));
+    const msg = typeof doneMsg === 'function' ? doneMsg(result) : (doneMsg ?? startMsg);
+    s.stop(msg);
+    return result;
+  } catch (e) {
+    s.stop(e.message, 1);
+    throw e;
+  }
+}
+
+/* ---------------- GitHub API ---------------- */
+
+function ghHeaders() {
+  const headers = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': 'chengzi-skills-manager',
+  };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  return headers;
+}
+
+async function ghFetch(url, { retries = 3 } = {}) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(url, { headers: ghHeaders() });
+    if (res.ok) return res.json();
+
+    const retryable = res.status === 403 || res.status === 429 || res.status >= 500;
+    if (!retryable || attempt === retries) {
+      const hint = res.status === 403 || res.status === 429
+        ? ' (set GITHUB_TOKEN for a higher rate limit)'
+        : '';
+      throw new Error(`GitHub API ${res.status}: ${url}${hint}`);
+    }
+
+    const retryAfter = Number(res.headers.get('retry-after'));
+    const reset = Number(res.headers.get('x-ratelimit-reset'));
+    let waitMs = 1000 * 2 ** attempt;
+    if (Number.isFinite(retryAfter) && retryAfter > 0) waitMs = retryAfter * 1000;
+    else if (Number.isFinite(reset)) waitMs = Math.max(1000, reset * 1000 - Date.now());
+    waitMs = Math.min(waitMs, 30_000);
+    await sleep(waitMs);
+  }
+}
+
+async function getDefaultBranch(owner, repo) {
+  const data = await ghFetch(`${GH_API}/repos/${owner}/${repo}`);
+  return data.default_branch;
+}
+
+async function getTree(owner, repo, ref) {
+  const data = await ghFetch(
+    `${GH_API}/repos/${owner}/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`,
+  );
+  if (data.truncated) log.warn('Tree is truncated; some skills may be missing');
+  return (data.tree || []).filter((t) => t.type === 'blob');
+}
+
+async function fetchRaw(owner, repo, ref, filePath) {
+  const encoded = filePath.split('/').map(encodeURIComponent).join('/');
+  const url = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(ref)}/${encoded}`;
+  const res = await fetch(url, { headers: ghHeaders() });
+  if (!res.ok) throw new Error(`Download failed ${res.status}: ${filePath}`);
+  return res.text();
+}
+
+/* ---------------- local skill scan ---------------- */
+
+function parseFrontmatter(raw) {
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!m) return null;
+  try { return YAML.parse(m[1]); } catch { return null; }
+}
+
+const isSkillFile = (p) => p.endsWith('/SKILL.md') || p === 'SKILL.md';
+const skillRootOf = (p) => p.slice(0, -'/SKILL.md'.length) || '.';
+const skipped = (p) => p.split('/').some((seg) => SKIP_DIRS.has(seg));
+
+/** Display group: skills/<cat>/<name> -> cat; skills/<name> -> skills */
+function displayGroup(root) {
+  if (root === '.') return 'root';
+  const segs = root.split('/');
+  if (segs[0] === 'skills') return segs.length > 2 ? segs[1] : 'skills';
+  return segs[0];
+}
+
+/** Find local dirs with SKILL.md; paths relative to ROOT */
+export async function findLocalSkills(dir = SKILLS_ROOT) {
+  const out = [];
+  const walk = async (d) => {
+    let entries;
+    try { entries = await readdir(d, { withFileTypes: true }); }
+    catch { return; }
+    for (const entry of entries) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      const full = path.join(d, entry.name);
+      if (!entry.isDirectory()) continue;
+      if (await exists(path.join(full, 'SKILL.md'))) out.push(path.relative(ROOT, full));
+      else await walk(full);
+    }
+  };
+  if (await exists(dir)) await walk(dir);
+  return out.sort();
+}
+
+export async function walkLocal(dir) {
+  const out = [];
+  const walk = async (d, base = '') => {
+    for (const entry of await readdir(d, { withFileTypes: true })) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      const full = path.join(d, entry.name);
+      const rel = base ? `${base}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) await walk(full, rel);
+      else out.push(rel);
+    }
+  };
+  await walk(dir);
+  return out;
+}
+
+/* ---------------- discover remote skills ---------------- */
+
+/**
+ * Find all skills in a repo.
+ * Returns [{ root, name, description, group, files }]
+ */
+export async function discoverSkills(owner, repo, ref) {
+  const blobs = (await getTree(owner, repo, ref)).filter((b) => !skipped(b.path));
+  const roots = [...new Set(
+    blobs.filter((b) => isSkillFile(b.path)).map((b) => skillRootOf(b.path)),
+  )].sort();
+
+  const skills = await mapPool(roots, CONCURRENCY, async (root) => {
+    const mdPath = root === '.' ? 'SKILL.md' : `${root}/SKILL.md`;
+    const prefix = root === '.' ? '' : `${root}/`;
+    const fm = parseFrontmatter(await fetchRaw(owner, repo, ref, mdPath));
+    if (!fm) return null;
+    const files = blobs
+      .filter((b) => b.path === mdPath || (prefix && b.path.startsWith(prefix)))
+      .map((b) => b.path);
+    return {
+      root,
+      name: fm.name || root.split('/').pop() || 'root',
+      description: (fm.description || '').toString().replace(/\s+/g, ' ').trim(),
+      group: displayGroup(root),
+      files,
+    };
+  });
+  return skills.filter(Boolean);
+}
+
+/* ---------------- registry / groups ---------------- */
+
+async function loadGroups() {
+  const mkt = await readJson(MKT_FILE);
+  return (mkt.plugins || []).map((p) => p.name);
+}
+
+function ensurePlugin(mkt, groupName) {
+  let plugin = mkt.plugins.find((p) => p.name === groupName);
+  if (!plugin) {
+    plugin = { name: groupName, description: `${groupName} skills`, source: './', skills: [] };
+    mkt.plugins.push(plugin);
+  }
+  plugin.skills = plugin.skills || [];
+  return plugin;
+}
+
+/** Download skill to tmp dir, then replace dest */
+async function downloadSkill({ owner, repo, ref, files, root, dest }) {
+  const tmp = path.join(SKILLS_ROOT, `.tmp-${path.basename(dest)}-${process.pid}`);
+  await rm(tmp, { recursive: true, force: true });
+  try {
+    await mkdir(tmp, { recursive: true });
+    for (const file of files) {
+      const rel = root === '.' ? file : file.slice(root.length + 1);
+      const target = path.join(tmp, ...rel.split('/'));
+      await mkdir(path.dirname(target), { recursive: true });
+      await writeFile(target, await fetchRaw(owner, repo, ref, file), 'utf8');
+    }
+    await rm(dest, { recursive: true, force: true });
+    await mkdir(path.dirname(dest), { recursive: true });
+    await rename(tmp, dest);
+  } catch (e) {
+    await rm(tmp, { recursive: true, force: true });
+    throw e;
+  }
+}
+
+function upsertDependency(deps, entry) {
+  const i = deps.dependencies.findIndex(
+    (d) => d.source?.repo === entry.source.repo && d.source?.path === entry.source.path,
+  );
+  if (i >= 0) {
+    deps.dependencies[i] = entry;
+    return false;
+  }
+  deps.dependencies.push(entry);
+  return true;
+}
+
+function removeFromMarketplace(mkt, localName) {
+  const relPath = `./skills/${localName}`;
+  for (const p of mkt.plugins) {
+    if (!p.skills?.includes(relPath)) continue;
+    p.skills = p.skills.filter((s) => s !== relPath);
+  }
+  // Drop empty non-main plugins; keep plugins without skills field
+  mkt.plugins = mkt.plugins.filter((p) => {
+    if (p.name === 'chengzi-skills') return true;
+    if (!Array.isArray(p.skills)) return true;
+    return p.skills.length > 0;
+  });
+}
+
+/* ---------------- collect ---------------- */
+
+async function collectSkill() {
+  log.step('Add skill from GitHub');
+
+  const repoInput = await text({
+    message: 'Source repo (owner/repo)?',
+    placeholder: 'emilkowalski/skills',
+    validate: (v) => (parseRepo(v) ? undefined : 'Use owner/repo, e.g. emilkowalski/skills'),
+  });
+  if (isCancel(repoInput)) return false;
+  const { owner, repo } = parseRepo(repoInput);
+
+  let defaultBranch;
+  try {
+    defaultBranch = await withSpinner(
+      'Connecting to GitHub…',
+      () => getDefaultBranch(owner, repo),
+      (b) => `${owner}/${repo} @ ${b}`,
+    );
+  } catch {
+    return false;
+  }
+
+  const branchInput = await text({
+    message: 'Branch or tag?',
+    placeholder: defaultBranch,
+    initialValue: defaultBranch,
+  });
+  if (isCancel(branchInput)) return false;
+  const ref = branchInput.trim() || defaultBranch;
+
+  let skills;
+  try {
+    skills = await withSpinner(
+      'Finding skills…',
+      () => discoverSkills(owner, repo, ref),
+      (list) => `Found ${list.length} skill(s)`,
+    );
+  } catch {
+    return false;
+  }
+  if (skills.length === 0) {
+    log.warn('No SKILL.md found');
+    return false;
+  }
+
+  const byGroup = {};
+  for (const s of skills) {
+    (byGroup[s.group] ||= []).push({
+      value: s.root,
+      label: s.name,
+      hint: truncate(s.description),
+    });
+  }
+
+  const picked = await groupMultiselect({
+    message: 'Pick skills (space to toggle, enter to confirm)',
+    options: byGroup,
+    required: false,
+  });
+  if (isCancel(picked)) return false;
+  const selected = skills.filter((s) => picked.includes(s.root));
+  if (selected.length === 0) {
+    log.warn('No skill selected');
+    return false;
+  }
+
+  const existingGroups = await loadGroups();
+  const groupChoice = await select({
+    message: 'Which plugin group?',
+    options: [
+      ...existingGroups.map((g) => ({ value: g, label: g })),
+      { value: '__new__', label: 'New group…' },
+    ],
+  });
+  if (isCancel(groupChoice)) return false;
+
+  let groupName = groupChoice;
+  if (groupChoice === '__new__') {
+    const name = await text({
+      message: 'New group name?',
+      placeholder: 'e.g. qa, data, backend',
+      validate: (v) => (/^[a-z0-9-]+$/.test(v.trim()) ? undefined : 'Use a-z, 0-9, and - only'),
+    });
+    if (isCancel(name)) return false;
+    groupName = name.trim();
+  }
+
+  const planned = selected.map((s) => ({ skill: s, name: safeName(s.name) }));
+  const conflicts = [];
+  for (const p of planned) {
+    if (await exists(path.join(SKILLS_ROOT, p.name))) conflicts.push(p.name);
+  }
+  if (conflicts.length > 0) {
+    const overwrite = await confirm({
+      message: `Already exists: ${conflicts.join(', ')}. Overwrite?`,
+      initialValue: false,
+    });
+    if (isCancel(overwrite) || !overwrite) {
+      log.warn('Cancelled');
+      return false;
+    }
+  }
+
+  let deps;
+  let mkt;
+  try {
+    deps = await readJson(DEPS_FILE);
+    mkt = await readJson(MKT_FILE);
+  } catch (e) {
+    log.error(`Failed to read config: ${e.message}`);
+    return false;
+  }
+
+  const results = [];
+  try {
+    await withSpinner('Downloading…', async (msg) => {
+      for (const { skill: s, name } of planned) {
+        msg(`Download ${name}…`);
+        await downloadSkill({
+          owner, repo, ref, files: s.files, root: s.root,
+          dest: path.join(SKILLS_ROOT, name),
+        });
+
+        const relPath = `./skills/${name}`;
+        const plugin = ensurePlugin(mkt, groupName);
+        if (!plugin.skills.includes(relPath)) plugin.skills.push(relPath);
+
+        const added = upsertDependency(deps, {
+          type: 'skill',
+          source: { repo: `${owner}/${repo}`, path: s.root, branch: ref },
+          target: { plugin: 'chengzi-skills', name },
+        });
+        results.push({ name, files: s.files.length, group: groupName, added });
+      }
+      await writeJson(DEPS_FILE, deps);
+      await writeJson(MKT_FILE, mkt);
+    }, `Added ${planned.length} skill(s)`);
+  } catch (e) {
+    log.error(e.message);
+    return false;
+  }
+
+  printSection(
+    'Done',
+    formatSkillList(
+      results.map((r) => ({
+        name: r.name + (r.added ? '' : '  (updated)'),
+        plugin: r.group,
+        source: 'new',
+        local: 'yes',
+        path: `skills/${r.name}`,
+      })),
+      { pluginOrder: [...new Set(results.map((r) => r.group))] },
+    ),
+  );
+  log.message('Tip: claude plugin validate .claude-plugin/marketplace.json');
+  return true;
+}
+
+/* ---------------- List all skills ---------------- */
+
+async function listCollected() {
+  const deps = await readJson(DEPS_FILE);
+  const mkt = await readJson(MKT_FILE);
+  const localDirs = await findLocalSkills();
+  const localSet = new Set(localDirs);
+  const pluginOf = await skillToPlugin();
+
+  const depByPath = new Map();
+  for (const d of deps.dependencies || []) {
+    depByPath.set(`skills/${localNameOf(d)}`, d);
+  }
+
+  // union: every local skill + every registered dep (even if missing on disk)
+  const paths = new Set([...localDirs, ...depByPath.keys()]);
+  const rows = [...paths].sort().map((skillPath) => {
+    const name = skillPath.split('/').pop();
+    const plugin = pluginOf.get(skillPath) || '-';
+    const dep = depByPath.get(skillPath);
+    let source = 'local';
+    if (dep) {
+      const ref = dep.source.branch || dep.source.tag || dep.source.release || '';
+      source = ref ? `${dep.source.repo}@${ref}` : dep.source.repo;
+    }
+    return {
+      name,
+      plugin,
+      source,
+      local: localSet.has(skillPath) ? 'yes' : 'no',
+      path: skillPath,
+    };
+  });
+
+  const pluginOrder = (mkt.plugins || []).map((p) => p.name);
+  printSection('All skills', formatSkillList(rows, { pluginOrder }));
+  return true;
+}
+
+/* ---------------- validate ---------------- */
+
+async function validateAll() {
+  let errors = 0;
+  const err = (msg) => { log.error(msg); errors++; };
+  const section = async (label, fn) => {
+    const before = errors;
+    try { await fn(); }
+    catch (e) { err(`${label}: ${e.message}`); }
+    if (errors === before) log.success(label);
+  };
+  const localDirs = await findLocalSkills();
+
+  await section('dependencies.json ok', async () => {
+    const deps = await readJson(DEPS_FILE);
+    if (deps.version !== 1) err('dependencies.json: version must be 1');
+    if (!Array.isArray(deps.dependencies)) err('dependencies.json: dependencies must be an array');
+    for (const d of deps.dependencies ?? []) {
+      if (!['skill', 'agent'].includes(d.type)) err(`Bad type: ${JSON.stringify(d)}`);
+      if (!d.source?.repo || !d.source?.path) err(`Missing source.repo/path: ${JSON.stringify(d)}`);
+      if (!d.target?.plugin) err(`Missing target.plugin: ${JSON.stringify(d)}`);
+      const refs = ['branch', 'tag', 'release'].filter((k) => d.source?.[k]);
+      if (refs.length > 1) err(`${d.source?.repo}: use only one of branch/tag/release`);
+    }
+  });
+
+  await section('marketplace.json ok', async () => {
+    const mkt = await readJson(MKT_FILE);
+    const declared = new Set();
+    for (const p of mkt.plugins ?? []) {
+      for (const s of p.skills ?? []) {
+        declared.add(s);
+        if (!(await exists(path.join(ROOT, s, 'SKILL.md')))) {
+          err(`marketplace.json: ${s} missing or no SKILL.md`);
+        }
+      }
+    }
+    for (const dir of localDirs) {
+      const key = `./${dir}`;
+      if (!declared.has(key)) err(`${key} not in marketplace.json (will show as Other)`);
+    }
+  });
+
+  await section('SKILL.md frontmatter ok', async () => {
+    for (const dir of localDirs) {
+      const raw = await readFile(path.join(ROOT, dir, 'SKILL.md'), 'utf8');
+      const fm = parseFrontmatter(raw);
+      if (!fm) { err(`${dir}/SKILL.md: missing frontmatter`); continue; }
+      if (!fm.name) err(`${dir}/SKILL.md: missing name`);
+      if (!fm.description) err(`${dir}/SKILL.md: missing description`);
+    }
+  });
+
+  log.message(errors === 0 ? 'All checks passed' : `${errors} problem(s)`);
+  return errors === 0;
+}
+
+/* ---------------- sync / remove ---------------- */
+
+/** Diff local skill dir vs upstream */
+export async function compareWithUpstream(dep) {
+  const [owner, repo] = dep.source.repo.split('/');
+  const ref = dep.source.branch || dep.source.tag || dep.source.release;
+  if (!ref) throw new Error(`${dep.source.repo}: missing branch/tag/release`);
+
+  const name = localNameOf(dep);
+  const localDir = path.join(SKILLS_ROOT, name);
+  const localFiles = await walkLocal(localDir).catch(() => null);
+  if (localFiles === null) return { missing: true, localName: name };
+
+  const blobs = await getTree(owner, repo, ref);
+  const prefix = dep.source.path === '.' ? '' : `${dep.source.path}/`;
+  const upstreamFiles = blobs
+    .filter((b) => b.path.startsWith(prefix) && b.path !== prefix.replace(/\/$/, ''))
+    .map((b) => b.path.slice(prefix.length))
+    .filter(Boolean);
+
+  const remoteOnly = upstreamFiles.filter((f) => !localFiles.includes(f));
+  const localOnly = localFiles.filter((f) => !upstreamFiles.includes(f));
+
+  const common = upstreamFiles.filter((f) => localFiles.includes(f));
+  const changedFiles = [];
+  await mapPool(common, CONCURRENCY, async (f) => {
+    const upstream = await fetchRaw(owner, repo, ref, prefix + f);
+    const local = await readFile(path.join(localDir, ...f.split('/')), 'utf8').catch(() => null);
+    if (local !== upstream) changedFiles.push(f);
+  });
+
+  const sha = (await ghFetch(
+    `${GH_API}/repos/${owner}/${repo}/commits/${encodeURIComponent(ref)}`,
+  )).sha;
+
+  return {
+    missing: false,
+    localName: name,
+    ref,
+    sha,
+    remoteOnly,
+    localOnly,
+    changed: changedFiles.length,
+    changedFiles,
+    total: upstreamFiles.length,
+  };
+}
+
+/** Build checklist vs upstream for each dep */
+export async function buildChecklist(entries) {
+  return mapPool(entries, Math.min(3, entries.length || 1), async (dep) => {
+    try {
+      const r = await compareWithUpstream(dep);
+      if (r.missing) return { dep, status: 'missing', r: null };
+      if (r.changed > 0 || r.remoteOnly.length > 0) return { dep, status: 'outdated', r };
+      return { dep, status: 'fresh', r };
+    } catch (e) {
+      return { dep, status: 'error', r: null, error: e.message };
+    }
+  });
+}
+
+async function syncToLocal(r, dep, { quiet = false } = {}) {
+  const [owner, repo] = dep.source.repo.split('/');
+  const ref = dep.source.branch || dep.source.tag || dep.source.release;
+  const prefix = dep.source.path === '.' ? '' : `${dep.source.path}/`;
+  const localDir = path.join(SKILLS_ROOT, r.localName);
+  const files = [...r.remoteOnly, ...r.changedFiles];
+  for (const f of files) {
+    const content = await fetchRaw(owner, repo, ref, prefix + f);
+    const target = path.join(localDir, ...f.split('/'));
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, content, 'utf8');
+  }
+  const msg = `${r.localName}: synced ${files.length} file(s) (@ ${r.sha.slice(0, 8)})`;
+  if (quiet) console.log(`  ok  ${msg}`);
+  else log.success(msg);
+  if (r.localOnly.length > 0) {
+    const warn = `${r.localName}: kept local-only files: ${r.localOnly.join(', ')}`;
+    if (quiet) console.warn(`  warn  ${warn}`);
+    else log.warn(warn);
+  }
+}
+
+/** Full reinstall when local dir is missing */
+async function reinstallFromDep(dep, { quiet = false } = {}) {
+  const [owner, repo] = dep.source.repo.split('/');
+  const ref = dep.source.branch || dep.source.tag || dep.source.release;
+  if (!ref) throw new Error(`${dep.source.repo}: missing branch/tag/release`);
+  const name = localNameOf(dep);
+  const root = dep.source.path;
+  const blobs = await getTree(owner, repo, ref);
+  const files = root === '.'
+    ? blobs.filter((b) => b.path === 'SKILL.md').map((b) => b.path)
+    : blobs.filter((b) => b.path.startsWith(`${root}/`)).map((b) => b.path);
+  if (files.length === 0) throw new Error(`${name}: no files under ${root} in ${owner}/${repo}@${ref}`);
+
+  await downloadSkill({
+    owner,
+    repo,
+    ref,
+    files,
+    root,
+    dest: path.join(SKILLS_ROOT, name),
+  });
+  const msg = `${name}: reinstalled ${files.length} file(s) from ${owner}/${repo}@${ref}`;
+  if (quiet) console.log(`  ok  ${msg}`);
+  else log.success(msg);
+}
+
+/**
+ * Non-interactive sync for CI / scripts.
+ * @param {{ checkOnly?: boolean }} opts
+ *   checkOnly: report drift only, do not write files (exit non-zero if drift)
+ * @returns {{ ok: boolean, fresh: number, synced: number, missing: number, errors: number, details: object[] }}
+ */
+export async function syncAll({ checkOnly = false } = {}) {
+  const deps = await readJson(DEPS_FILE);
+  const entries = deps.dependencies || [];
+  if (entries.length === 0) {
+    console.log('No third-party skills in dependencies.json');
+    return { ok: true, fresh: 0, synced: 0, missing: 0, errors: 0, details: [] };
+  }
+
+  console.log(`Checking ${entries.length} skill(s) against upstream…`);
+  const items = await buildChecklist(entries);
+  const details = items.map((i) => ({
+    name: localNameOf(i.dep),
+    status: i.status,
+    error: i.error,
+    changed: i.r?.changed,
+    remoteOnly: i.r?.remoteOnly?.length,
+    sha: i.r?.sha?.slice(0, 8),
+  }));
+
+  const fresh = items.filter((i) => i.status === 'fresh');
+  const outdated = items.filter((i) => i.status === 'outdated');
+  const missing = items.filter((i) => i.status === 'missing');
+  const errors = items.filter((i) => i.status === 'error');
+
+  for (const i of fresh) console.log(`  =  ${localNameOf(i.dep)}  up to date${i.r?.sha ? ` @ ${i.r.sha.slice(0, 8)}` : ''}`);
+  for (const i of outdated) {
+    console.log(
+      `  ^  ${i.r.localName}  +${i.r.remoteOnly.length} new / ${i.r.changed} changed @ ${i.r.sha.slice(0, 8)}`,
+    );
+  }
+  for (const i of missing) console.log(`  x  ${localNameOf(i.dep)}  missing on disk`);
+  for (const i of errors) console.error(`  !  ${localNameOf(i.dep)}  ${i.error}`);
+
+  if (checkOnly) {
+    const ok = outdated.length === 0 && missing.length === 0 && errors.length === 0;
+    console.log(
+      ok
+        ? `Check ok: ${fresh.length} up to date`
+        : `Check failed: ${outdated.length} outdated, ${missing.length} missing, ${errors.length} error(s)`,
+    );
+    return {
+      ok,
+      fresh: fresh.length,
+      synced: 0,
+      missing: missing.length,
+      errors: errors.length,
+      details,
+    };
+  }
+
+  let synced = 0;
+  let fail = errors.length;
+  const toFix = [...outdated, ...missing];
+  if (toFix.length === 0 && fail === 0) {
+    console.log(`Sync ok: ${fresh.length} already up to date`);
+    return { ok: true, fresh: fresh.length, synced: 0, missing: 0, errors: 0, details };
+  }
+
+  console.log(`Syncing ${toFix.length} skill(s)…`);
+  for (const item of toFix) {
+    try {
+      if (item.status === 'missing') await reinstallFromDep(item.dep, { quiet: true });
+      else await syncToLocal(item.r, item.dep, { quiet: true });
+      synced++;
+    } catch (e) {
+      fail++;
+      console.error(`  !  ${localNameOf(item.dep)}: ${e.message}`);
+    }
+  }
+
+  const ok = fail === 0;
+  console.log(
+    ok
+      ? `Sync ok: ${synced} updated, ${fresh.length} unchanged`
+      : `Sync finished with errors: ${synced} updated, ${fail} failed, ${fresh.length} unchanged`,
+  );
+  return {
+    ok,
+    fresh: fresh.length,
+    synced,
+    missing: missing.length,
+    errors: fail,
+    details,
+  };
+}
+
+async function manageCollected() {
+  const deps = await readJson(DEPS_FILE);
+  const entries = deps.dependencies || [];
+  if (entries.length === 0) {
+    log.info('No third-party skills yet. Use "Add skill" first.');
+    return false;
+  }
+
+  let items;
+  try {
+    items = await withSpinner(
+      `Checking ${entries.length} skill(s)…`,
+      () => buildChecklist(entries),
+      (list) => {
+        const n = list.filter((i) => i.status === 'outdated').length;
+        return n > 0 ? `Done: ${n} update(s)` : 'Done: all up to date';
+      },
+    );
+  } catch (e) {
+    log.error(e.message);
+    return false;
+  }
+
+  const outdated = items.filter((i) => i.status === 'outdated');
+  const fresh = items.filter((i) => i.status === 'fresh');
+  const missing = items.filter((i) => i.status === 'missing');
+  const errors = items.filter((i) => i.status === 'error');
+
+  for (const i of errors) log.error(`${localNameOf(i.dep)}: check failed (${i.error})`);
+  if (outdated.length > 0) {
+    log.warn(
+      `^ ${outdated.length} update(s): ${outdated
+        .map((i) => `${i.r.localName}(+${i.r.remoteOnly.length}/~${i.r.changed})`)
+        .join(', ')}`,
+    );
+  }
+  if (missing.length > 0) {
+    log.warn(`x ${missing.length} missing: ${missing.map((i) => localNameOf(i.dep)).join(', ')}`);
+  }
+  if (fresh.length > 0) log.success(`${fresh.length} up to date`);
+
+  const options = items.map(({ dep, status, r }) => {
+    const name = localNameOf(dep);
+    const prefix = status === 'outdated' ? '^ ' : status === 'missing' ? 'x ' : status === 'error' ? '? ' : '';
+    let hint = 'check failed';
+    if (status === 'outdated') hint = `+${r.remoteOnly.length} new / ${r.changed} changed @ ${r.sha.slice(0, 8)}`;
+    else if (status === 'fresh') hint = `${r.total} file(s), latest @ ${r.sha.slice(0, 8)}`;
+    else if (status === 'missing') hint = 'missing on disk';
+    return { value: name, label: `${prefix}${name}`, hint };
+  });
+
+  const byName = new Map(items.map((i) => [localNameOf(i.dep), i]));
+  const picked = await multiselect({
+    message: 'Pick skills (^ = update available, pre-selected)',
+    options,
+    initialValues: outdated.map((i) => localNameOf(i.dep)),
+    required: false,
+  });
+  if (isCancel(picked)) return false;
+  if (picked.length === 0) {
+    log.warn('No skill selected');
+    return false;
+  }
+
+  const action = await select({
+    message: `Action for ${picked.length} skill(s)?`,
+    options: [
+      { value: 'sync', label: 'Sync from upstream', hint: 'overwrite local (keep local-only files)' },
+      { value: 'remove', label: 'Remove', hint: 'delete local + registry (cannot undo)' },
+      { value: 'cancel', label: 'Cancel' },
+    ],
+  });
+  if (isCancel(action) || action === 'cancel') {
+    log.warn('Cancelled');
+    return false;
+  }
+
+  if (action === 'sync') {
+    const toSync = picked.map((n) => byName.get(n)).filter((i) => i?.status === 'outdated');
+    const skipped = picked.length - toSync.length;
+    if (toSync.length === 0) {
+      log.info('All selected skills are already up to date');
+      return true;
+    }
+    if (skipped > 0) log.message(`Skip ${skipped} up-to-date skill(s)`);
+
+    const ok = await confirm({
+      message: `Sync ${toSync.length} skill(s) (overwrite local files)?`,
+      initialValue: true,
+    });
+    if (isCancel(ok) || !ok) {
+      log.warn('Cancelled');
+      return true;
+    }
+
+    try {
+      await withSpinner('Syncing…', async (msg) => {
+        for (const { r, dep } of toSync) {
+          msg(`Sync ${r.localName}…`);
+          await syncToLocal(r, dep);
+        }
+      }, `Synced ${toSync.length} skill(s)`);
+    } catch (e) {
+      log.error(e.message);
+      return false;
+    }
+    return true;
+  }
+
+  const ok = await confirm({
+    message: `Delete ${picked.length} skill(s) (${picked.join(', ')})? Cannot undo`,
+    initialValue: false,
+  });
+  if (isCancel(ok) || !ok) {
+    log.warn('Cancelled');
+    return false;
+  }
+
+  try {
+    await withSpinner('Removing…', async (msg) => {
+      const mkt = await readJson(MKT_FILE);
+      for (const name of picked) {
+        msg(`Remove ${name}…`);
+        await rm(path.join(SKILLS_ROOT, name), { recursive: true, force: true });
+        removeFromMarketplace(mkt, name);
+      }
+      deps.dependencies = deps.dependencies.filter((x) => !picked.includes(localNameOf(x)));
+      await writeJson(DEPS_FILE, deps);
+      await writeJson(MKT_FILE, mkt);
+    }, `Removed ${picked.length} skill(s)`);
+  } catch (e) {
+    log.error(e.message);
+    return false;
+  }
+  return true;
+}
+
+/* ---------------- main ---------------- */
+
+async function main() {
+  intro('chengzi-skills');
+  const actions = {
+    collect: collectSkill,
+    manage: manageCollected,
+    list: listCollected,
+    validate: validateAll,
+  };
+
+  while (true) {
+    const action = await select({
+      message: 'What do you want to do?',
+      options: [
+        { value: 'collect', label: 'Add skill', hint: 'from GitHub' },
+        { value: 'manage', label: 'Manage skills', hint: 'sync or remove' },
+        { value: 'list', label: 'List skills', hint: 'all local + deps' },
+        { value: 'validate', label: 'Check config', hint: 'deps / marketplace / frontmatter' },
+        { value: 'exit', label: 'Exit' },
+      ],
+    });
+
+    if (isCancel(action) || action === 'exit') {
+      outro('Bye');
+      break;
+    }
+
+    try {
+      await actions[action]();
+    } catch (e) {
+      log.error(`Unexpected error: ${e.message}`);
+    }
+  }
+}
+
+/* ---------------- CLI ---------------- */
+
+async function runCli(argv) {
+  const [cmd, ...rest] = argv;
+
+  // Debug: node scripts/manage.mjs --list-repo <owner/repo>
+  if (cmd === '--list-repo' && rest[0]) {
+    const parsed = parseRepo(rest[0]);
+    if (!parsed) {
+      console.error('Use owner/repo');
+      process.exit(1);
+    }
+    const { owner, repo } = parsed;
+    const branch = await getDefaultBranch(owner, repo);
+    const skills = await discoverSkills(owner, repo, branch);
+    console.log(JSON.stringify({ repo: `${owner}/${repo}`, branch, skills }, null, 2));
+    return;
+  }
+
+  // CI / non-interactive: sync all third-party skills from upstream
+  //   node scripts/manage.mjs sync
+  //   node scripts/manage.mjs sync --check
+  if (cmd === 'sync') {
+    const checkOnly = rest.includes('--check');
+    const result = await syncAll({ checkOnly });
+    process.exitCode = result.ok ? 0 : 1;
+    return;
+  }
+
+  // Non-interactive validate (also useful in CI)
+  if (cmd === 'validate') {
+    const ok = await validateAll();
+    process.exitCode = ok ? 0 : 1;
+    return;
+  }
+
+  if (cmd === '--help' || cmd === '-h' || cmd === 'help') {
+    console.log(`chengzi-skills manager
+
+Usage:
+  npm run manage                 Interactive menu
+  npm run sync                   Sync all third-party skills from upstream
+  npm run sync:check             Check only (exit 1 if outdated/missing)
+  node scripts/manage.mjs validate
+  node scripts/manage.mjs --list-repo <owner/repo>
+
+Env:
+  GITHUB_TOKEN   Optional; higher GitHub API rate limit
+`);
+    return;
+  }
+
+  if (cmd) {
+    console.error(`Unknown command: ${cmd}`);
+    console.error('Run with --help for usage');
+    process.exitCode = 1;
+    return;
+  }
+
+  await main();
+}
+
+const isMain = process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url;
+if (isMain) {
+  runCli(process.argv.slice(2)).catch((e) => {
+    console.error(`Unexpected error: ${e.message}`);
+    process.exit(1);
+  });
+}

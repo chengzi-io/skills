@@ -1,0 +1,17 @@
+{
+  "name": "chengzi-skills",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "个人 Agent Skills 聚合仓库管理",
+  "scripts": {
+    "manage": "node scripts/manage.mjs",
+    "sync": "node scripts/manage.mjs sync",
+    "sync:check": "node scripts/manage.mjs sync --check",
+    "validate": "node scripts/manage.mjs validate"
+  },
+  "devDependencies": {
+    "@clack/prompts": "^0.10.1",
+    "yaml": "^2.8.0"
+  }
+}
