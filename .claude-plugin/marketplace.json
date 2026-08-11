@@ -20,13 +20,15 @@
       ]
     },
     {
-      "name": "web",
-      "description": "UI craft, design engineering, and interactive prototyping.",
+      "name": "design",
+      "description": "Visual direction, multi-variant prototyping, motion craft, and UI quality audits.",
       "source": "./",
       "category": "design",
       "skills": [
+        "./skills/frontend-design",
+        "./skills/prototype",
         "./skills/emil-design-eng",
-        "./skills/prototype"
+        "./skills/web-design-guidelines"
       ]
     },
     {

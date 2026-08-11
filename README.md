@@ -20,8 +20,10 @@ Auto-generated from local `SKILL.md` + `dependencies.json` + `marketplace.json`.
 | [`write-bdd`](skills/writing/write-bdd) | writing | local | — | Write, review, and implement BDD Gherkin .feature files and step definitions. Use when the user asks… |
 | [`write-ears`](skills/writing/write-ears) | writing | local | — | Write and review EARS functional requirements and acceptance criteria. Use when the user asks to wri… |
 | [`writing-openapi-specs`](skills/writing-openapi-specs) | writing | speakeasy-api/skills@master#d2eab59 | 2026-08-10 | Reference guide for OpenAPI specification best practices, naming conventions, and expressing complex… |
-| [`emil-design-eng`](skills/emil-design-eng) | web | emilkowalski/skills@main#9075d17 | 2026-08-10 | This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, a… |
-| [`prototype`](skills/prototype) | web | emilkowalski/skills@main#9075d17 | 2026-08-10 | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual pic… |
+| [`emil-design-eng`](skills/emil-design-eng) | design | emilkowalski/skills@main#9075d17 | 2026-08-10 | This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, a… |
+| [`frontend-design`](skills/frontend-design) | design | anthropics/skills@main#f17010c | 2026-08-10 | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing on… |
+| [`prototype`](skills/prototype) | design | emilkowalski/skills@main#9075d17 | 2026-08-10 | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual pic… |
+| [`web-design-guidelines`](skills/web-design-guidelines) | design | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check acc… |
 | [`grill-me`](skills/grill-me) | architecture | local | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
 | [`screaming-architecture`](skills/screaming-architecture) | architecture | local | — | Organise and review package structure so directories scream business capabilities (package-by-featur… |
 | [`oapi-codegen-best-practices`](skills/golang/oapi-codegen-best-practices) | golang | local | — | Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server… |

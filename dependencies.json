@@ -10,7 +10,7 @@
         "branch": "main"
       },
       "target": {
-        "plugin": "web",
+        "plugin": "design",
         "name": "emil-design-eng"
       },
       "resolved": {
@@ -26,7 +26,7 @@
         "branch": "main"
       },
       "target": {
-        "plugin": "web",
+        "plugin": "design",
         "name": "prototype"
       },
       "resolved": {
@@ -48,6 +48,38 @@
       "resolved": {
         "sha": "d2eab5991ef881b39a26ab47432cf273c2c1abb5",
         "syncedAt": "2026-08-10T13:48:10.334Z"
+      }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "anthropics/skills",
+        "path": "skills/frontend-design",
+        "branch": "main"
+      },
+      "target": {
+        "plugin": "design",
+        "name": "frontend-design"
+      },
+      "resolved": {
+        "sha": "f17010c9bb483898c1d9c9f42dde2b3a98889434",
+        "syncedAt": "2026-08-10T14:39:36.956Z"
+      }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "vercel-labs/agent-skills",
+        "path": "skills/web-design-guidelines",
+        "branch": "main"
+      },
+      "target": {
+        "plugin": "design",
+        "name": "web-design-guidelines"
+      },
+      "resolved": {
+        "sha": "7c180d9044c9ae2b442b567aad4e42a28dd5ed62",
+        "syncedAt": "2026-08-10T14:40:14.139Z"
       }
     }
   ]
