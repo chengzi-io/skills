@@ -32,6 +32,17 @@
       ]
     },
     {
+      "name": "frontend",
+      "description": "React/Next.js performance, composition patterns, and shadcn/ui component workflows.",
+      "source": "./",
+      "category": "engineering",
+      "skills": [
+        "./skills/vercel-react-best-practices",
+        "./skills/vercel-composition-patterns",
+        "./skills/shadcn"
+      ]
+    },
+    {
       "name": "architecture",
       "description": "Structure, packaging, and decision stress-testing.",
       "source": "./",

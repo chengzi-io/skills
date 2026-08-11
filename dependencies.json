@@ -81,6 +81,54 @@
         "sha": "7c180d9044c9ae2b442b567aad4e42a28dd5ed62",
         "syncedAt": "2026-08-10T14:40:14.139Z"
       }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "vercel-labs/agent-skills",
+        "path": "skills/react-best-practices",
+        "branch": "main"
+      },
+      "target": {
+        "plugin": "frontend",
+        "name": "vercel-react-best-practices"
+      },
+      "resolved": {
+        "sha": "7c180d9044c9ae2b442b567aad4e42a28dd5ed62",
+        "syncedAt": "2026-08-10T14:40:04.959Z"
+      }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "vercel-labs/agent-skills",
+        "path": "skills/composition-patterns",
+        "branch": "main"
+      },
+      "target": {
+        "plugin": "frontend",
+        "name": "vercel-composition-patterns"
+      },
+      "resolved": {
+        "sha": "7c180d9044c9ae2b442b567aad4e42a28dd5ed62",
+        "syncedAt": "2026-08-10T14:40:12.145Z"
+      }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "shadcn/ui",
+        "path": "skills/shadcn",
+        "branch": "main"
+      },
+      "target": {
+        "plugin": "frontend",
+        "name": "shadcn"
+      },
+      "resolved": {
+        "sha": "deda4df80fb350230b2fce2b575e769a90cae076",
+        "syncedAt": "2026-08-10T14:40:25.055Z"
+      }
     }
   ]
 }

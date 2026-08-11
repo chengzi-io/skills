@@ -24,6 +24,9 @@ Auto-generated from local `SKILL.md` + `dependencies.json` + `marketplace.json`.
 | [`frontend-design`](skills/frontend-design) | design | anthropics/skills@main#f17010c | 2026-08-10 | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing on… |
 | [`prototype`](skills/prototype) | design | emilkowalski/skills@main#9075d17 | 2026-08-10 | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual pic… |
 | [`web-design-guidelines`](skills/web-design-guidelines) | design | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check acc… |
+| [`shadcn`](skills/shadcn) | frontend | shadcn/ui@main#deda4df | 2026-08-10 | Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composin… |
+| [`vercel-composition-patterns`](skills/vercel-composition-patterns) | frontend | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React composition patterns that scale. Use when refactoring components with boolean prop proliferati… |
+| [`vercel-react-best-practices`](skills/vercel-react-best-practices) | frontend | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be … |
 | [`grill-me`](skills/grill-me) | architecture | local | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
 | [`screaming-architecture`](skills/screaming-architecture) | architecture | local | — | Organise and review package structure so directories scream business capabilities (package-by-featur… |
 | [`oapi-codegen-best-practices`](skills/golang/oapi-codegen-best-practices) | golang | local | — | Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server… |
