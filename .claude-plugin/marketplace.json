@@ -49,7 +49,9 @@
       "category": "engineering",
       "skills": [
         "./skills/screaming-architecture",
-        "./skills/grill-me"
+        "./skills/grill-me",
+        "./skills/domain-modeling",
+        "./skills/grill-with-docs"
       ]
     },
     {
@@ -68,6 +70,14 @@
       "category": "productivity",
       "skills": [
         "./skills/write-skill"
+      ]
+    },
+    {
+      "name": "development",
+      "description": "development skills",
+      "source": "./",
+      "skills": [
+        "./skills/tdd"
       ]
     }
   ]

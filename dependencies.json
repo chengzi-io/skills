@@ -129,6 +129,54 @@
         "sha": "deda4df80fb350230b2fce2b575e769a90cae076",
         "syncedAt": "2026-08-10T14:40:25.055Z"
       }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "mattpocock/skills",
+        "path": "skills/engineering/domain-modeling",
+        "branch": "main"
+      },
+      "resolved": {
+        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
+        "syncedAt": "2026-08-14T15:28:49.814Z"
+      },
+      "target": {
+        "plugin": "architecture",
+        "name": "domain-modeling"
+      }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "mattpocock/skills",
+        "path": "skills/engineering/grill-with-docs",
+        "branch": "main"
+      },
+      "resolved": {
+        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
+        "syncedAt": "2026-08-14T15:28:50.722Z"
+      },
+      "target": {
+        "plugin": "architecture",
+        "name": "grill-with-docs"
+      }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "mattpocock/skills",
+        "path": "skills/engineering/tdd",
+        "branch": "main"
+      },
+      "resolved": {
+        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
+        "syncedAt": "2026-08-14T15:36:20.652Z"
+      },
+      "target": {
+        "plugin": "development",
+        "name": "tdd"
+      }
     }
   ]
 }
