@@ -29,7 +29,7 @@ Auto-generated from local `SKILL.md` + `dependencies.json` + `marketplace.json`.
 | [`vercel-react-best-practices`](skills/vercel-react-best-practices) | frontend | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be … |
 | [`domain-modeling`](skills/domain-modeling) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-14 | Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or edi… |
 | [`grill-with-docs`](skills/grill-with-docs) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-14 | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as … |
-| [`grill-me`](skills/grill-me) | architecture | local | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
+| [`grilling`](skills/grilling) | architecture | local | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
 | [`screaming-architecture`](skills/screaming-architecture) | architecture | local | — | Organise and review package structure so directories scream business capabilities (package-by-featur… |
 | [`oapi-codegen-best-practices`](skills/golang/oapi-codegen-best-practices) | golang | local | — | Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server… |
 | [`write-skill`](skills/write-skill) | meta | local | — | Creates or updates Agent Skills following the current agentskills.io specification and guidance. Use… |
