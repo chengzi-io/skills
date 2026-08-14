@@ -41,12 +41,16 @@ Auto-generated from local `SKILL.md` + `dependencies.json` + `marketplace.json`.
 
 ```bash
 pnpm install
-pnpm manage          # interactive: add / sync / remove / list / validate
+pnpm manage          # interactive: add / manage (sync, rename, change group, remove) / list / validate
 pnpm sync            # pull upstream into local skill dirs
 pnpm sync:check      # exit 1 if outdated or missing
 pnpm validate        # deps + marketplace + frontmatter + README table
 pnpm readme          # regenerate skills table above
 ```
+
+The interactive menu asks before checking upstream (default: no network). **Add skill** lets you pick a repo already in `dependencies.json` or type a new one; **Manage skills** covers sync, rename (dir + `SKILL.md` + registry files), change group, and remove.
+
+GitHub responses (default branch, tree, raw files, commit SHA) are cached under `node_modules/.cache/manage` for 10 minutes — set `MANAGE_CACHE_TTL_MS` to change the TTL (`0` disables), or pass `--no-cache` to CLI commands, e.g. `node scripts/manage.mjs sync --no-cache`.
 
 `dependencies.json` is the source of truth for third-party sync. Empty list → sync is a no-op.
 

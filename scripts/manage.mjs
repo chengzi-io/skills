@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * chengzi-skills manager — collect / list / sync / remove skills
+ * chengzi-skills manager — collect / list / sync / remove / rename skills
  *
  * Usage:
  *   npm run manage                         interactive menu
@@ -9,14 +9,20 @@
  *   npm run readme                         regenerate skills table in README.md
  *   npm run readme -- --check              fail if README table is stale
  *   node scripts/manage.mjs --list-repo <owner/repo>
+ *   node scripts/manage.mjs sync --no-cache   bypass the GitHub response cache
  *
  * Flow: repo → find SKILL.md → pick → download to skills/<name>/ →
  *       write dependencies.json + marketplace.json
+ *
+ * GitHub responses (default branch, tree, raw files, commit SHA) are cached
+ * under node_modules/.cache/manage for MANAGE_CACHE_TTL_MS (default 10 min);
+ * pass --no-cache or set MANAGE_CACHE_TTL_MS=0 to always hit the network.
  */
 import {
   select, text, confirm, multiselect, groupMultiselect,
   isCancel, intro, outro, log, spinner,
 } from '@clack/prompts';
+import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir, readdir, rm, rename, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -29,6 +35,9 @@ const README_FILE = path.join(ROOT, 'README.md');
 const SKILLS_ROOT = path.join(ROOT, 'skills');
 const GH_API = 'https://api.github.com';
 const CONCURRENCY = 6;
+const CACHE_DIR = path.join(ROOT, 'node_modules', '.cache', 'manage');
+const CACHE_TTL_MS = Number(process.env.MANAGE_CACHE_TTL_MS || 10 * 60 * 1000);
+let cacheEnabled = true;
 const README_START = '<!-- skills:table:start -->';
 const README_END = '<!-- skills:table:end -->';
 const SKIP_DIRS = new Set([
@@ -206,23 +215,64 @@ async function ghFetch(url, { retries = 3 } = {}) {
   }
 }
 
+/* ---------------- GitHub response cache ---------------- */
+
+const memCache = new Map();
+const cacheKey = (url) => createHash('sha1').update(url).digest('hex');
+
+async function cacheRead(url) {
+  if (!(CACHE_TTL_MS > 0)) return undefined;
+  try {
+    const entry = JSON.parse(
+      await readFile(path.join(CACHE_DIR, `${cacheKey(url)}.json`), 'utf8'),
+    );
+    if (Number.isFinite(entry?.ts) && Date.now() - entry.ts < CACHE_TTL_MS) return entry.data;
+  } catch { /* miss */ }
+  return undefined;
+}
+
+async function cacheWrite(url, data) {
+  if (!(CACHE_TTL_MS > 0)) return;
+  try {
+    await mkdir(CACHE_DIR, { recursive: true });
+    const file = path.join(CACHE_DIR, `${cacheKey(url)}.json`);
+    const tmp = `${file}.${process.pid}.tmp`;
+    await writeFile(tmp, JSON.stringify({ ts: Date.now(), data }), 'utf8');
+    await rename(tmp, file);
+  } catch { /* best-effort */ }
+}
+
+/** Memoized fetch: in-process dedup, then TTL'd disk cache, then network. */
+async function cachedCall(url, fn) {
+  if (!cacheEnabled) return fn();
+  if (memCache.has(url)) return memCache.get(url);
+  const p = (async () => {
+    const hit = await cacheRead(url);
+    if (hit !== undefined) return hit;
+    const data = await fn();
+    await cacheWrite(url, data);
+    return data;
+  })();
+  memCache.set(url, p);
+  try { return await p; } finally { memCache.delete(url); }
+}
+
 async function getDefaultBranch(owner, repo) {
-  const data = await ghFetch(`${GH_API}/repos/${owner}/${repo}`);
+  const url = `${GH_API}/repos/${owner}/${repo}`;
+  const data = await cachedCall(url, () => ghFetch(url));
   return data.default_branch;
 }
 
 /** Resolve floating ref (branch/tag/release) to a full commit SHA. */
 async function resolveCommitSha(owner, repo, ref) {
-  const data = await ghFetch(
-    `${GH_API}/repos/${owner}/${repo}/commits/${encodeURIComponent(ref)}`,
-  );
+  const url = `${GH_API}/repos/${owner}/${repo}/commits/${encodeURIComponent(ref)}`;
+  const data = await cachedCall(url, () => ghFetch(url));
   return data.sha;
 }
 
 async function getTree(owner, repo, ref) {
-  const data = await ghFetch(
-    `${GH_API}/repos/${owner}/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`,
-  );
+  const url = `${GH_API}/repos/${owner}/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`;
+  const data = await cachedCall(url, () => ghFetch(url));
   if (data.truncated) log.warn('Tree is truncated; some skills may be missing');
   return (data.tree || []).filter((t) => t.type === 'blob');
 }
@@ -230,9 +280,11 @@ async function getTree(owner, repo, ref) {
 async function fetchRaw(owner, repo, ref, filePath) {
   const encoded = filePath.split('/').map(encodeURIComponent).join('/');
   const url = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(ref)}/${encoded}`;
-  const res = await fetch(url, { headers: ghHeaders() });
-  if (!res.ok) throw new Error(`Download failed ${res.status}: ${filePath}`);
-  return res.text();
+  return cachedCall(url, async () => {
+    const res = await fetch(url, { headers: ghHeaders() });
+    if (!res.ok) throw new Error(`Download failed ${res.status}: ${filePath}`);
+    return res.text();
+  });
 }
 
 /* ---------------- local skill scan ---------------- */
@@ -370,8 +422,7 @@ function upsertDependency(deps, entry) {
   return true;
 }
 
-function removeFromMarketplace(mkt, localName) {
-  const relPath = `./skills/${localName}`;
+function removeFromMarketplace(mkt, relPath) {
   for (const p of mkt.plugins) {
     if (!p.skills?.includes(relPath)) continue;
     p.skills = p.skills.filter((s) => s !== relPath);
@@ -384,17 +435,131 @@ function removeFromMarketplace(mkt, localName) {
   });
 }
 
+/* ---------------- rename / group helpers ---------------- */
+
+/** Repos already tracked in dependencies.json → refs used (repo picker). */
+async function knownRepos() {
+  const deps = await readJson(DEPS_FILE);
+  const byRepo = new Map();
+  for (const d of deps.dependencies || []) {
+    if (!d.source?.repo) continue;
+    if (!byRepo.has(d.source.repo)) byRepo.set(d.source.repo, new Set());
+    const ref = d.source.branch || d.source.tag || d.source.release;
+    if (ref) byRepo.get(d.source.repo).add(ref);
+  }
+  return byRepo;
+}
+
+/** Pick an existing plugin group or create a new one; null on cancel. */
+async function selectGroup(message) {
+  const existingGroups = await loadGroups();
+  const choice = await select({
+    message,
+    options: [
+      ...existingGroups.map((g) => ({ value: g, label: g })),
+      { value: '__new__', label: 'New group…' },
+    ],
+  });
+  if (isCancel(choice)) return null;
+  if (choice !== '__new__') return choice;
+  const name = await text({
+    message: 'New group name?',
+    placeholder: 'e.g. qa, data, backend',
+    validate: (v) => (/^[a-z0-9-]+$/.test(v.trim()) ? undefined : 'Use a-z, 0-9, and - only'),
+  });
+  if (isCancel(name)) return null;
+  return name.trim();
+}
+
+/** Rewrite the `name:` line inside SKILL.md frontmatter, keeping the rest intact. */
+export function withFrontmatterName(raw, name) {
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!m || !/^name\s*:/m.test(m[1])) return raw;
+  const nl = m[0].includes('\r\n') ? '\r\n' : '\n';
+  const fm = m[1].replace(/^name\s*:.*$/m, `name: ${name}`);
+  return `---${nl}${fm}${nl}---${raw.slice(m[0].length)}`;
+}
+
+export function renameInMarketplace(mkt, oldPath, newPath) {
+  for (const p of mkt.plugins) {
+    if (!Array.isArray(p.skills)) continue;
+    p.skills = p.skills.map((s) => (s === oldPath ? newPath : s));
+  }
+}
+
+export function moveInMarketplace(mkt, relPath, groupName) {
+  for (const p of mkt.plugins) {
+    if (!Array.isArray(p.skills)) continue;
+    p.skills = p.skills.filter((s) => s !== relPath);
+  }
+  const plugin = ensurePlugin(mkt, groupName);
+  if (!plugin.skills.includes(relPath)) plugin.skills.push(relPath);
+  // Drop groups left empty by the move (keep main + plugins without a skills list)
+  mkt.plugins = mkt.plugins.filter((p) => {
+    if (p.name === 'chengzi-skills') return true;
+    if (!Array.isArray(p.skills)) return true;
+    return p.skills.length > 0;
+  });
+}
+
+/**
+ * Rename a skill end to end: directory, SKILL.md `name`, marketplace path,
+ * dependency target.name. Persists marketplace + dependencies.
+ */
+export async function renameSkillTo(item, newName, deps) {
+  const parts = item.dir.split('/');
+  parts[parts.length - 1] = newName;
+  const newDir = parts.join('/');
+
+  const md = path.join(ROOT, item.dir, 'SKILL.md');
+  if (await exists(md)) {
+    const raw = await readFile(md, 'utf8');
+    const updated = withFrontmatterName(raw, newName);
+    if (updated !== raw) await writeFile(md, updated, 'utf8');
+  }
+
+  await rename(path.join(ROOT, item.dir), path.join(ROOT, newDir));
+
+  const mkt = await readJson(MKT_FILE);
+  renameInMarketplace(mkt, `./${item.dir}`, `./${newDir}`);
+  if (item.dep) item.dep.target.name = newName;
+  await writeJson(MKT_FILE, mkt);
+  await writeJson(DEPS_FILE, deps);
+}
+
 /* ---------------- collect ---------------- */
 
 async function collectSkill() {
   log.step('Add skill from GitHub');
 
-  const repoInput = await text({
-    message: 'Source repo (owner/repo)?',
-    placeholder: 'emilkowalski/skills',
-    validate: (v) => (parseRepo(v) ? undefined : 'Use owner/repo, e.g. emilkowalski/skills'),
-  });
-  if (isCancel(repoInput)) return false;
+  const known = await knownRepos();
+  const repoOptions = [...known.keys()].map((repo) => ({
+    value: repo,
+    label: repo,
+    hint: [...known.get(repo)].join(', '),
+  }));
+
+  let repoInput = null;
+  if (repoOptions.length > 0) {
+    const choice = await select({
+      message: 'Source repo? (pick one used before, or type a new one)',
+      options: [
+        ...repoOptions,
+        { value: '__new__', label: 'Type a new repo…' },
+      ],
+    });
+    if (isCancel(choice)) return false;
+    if (choice !== '__new__') repoInput = choice;
+  }
+
+  if (repoInput === null) {
+    repoInput = await text({
+      message: 'Source repo (owner/repo)?',
+      placeholder: 'emilkowalski/skills',
+      validate: (v) => (parseRepo(v) ? undefined : 'Use owner/repo, e.g. emilkowalski/skills'),
+    });
+    if (isCancel(repoInput)) return false;
+  }
   const { owner, repo } = parseRepo(repoInput);
 
   let defaultBranch;
@@ -408,10 +573,11 @@ async function collectSkill() {
     return false;
   }
 
+  const knownRef = [...(known.get(`${owner}/${repo}`) || [])][0] || '';
   const branchInput = await text({
     message: 'Branch or tag?',
-    placeholder: defaultBranch,
-    initialValue: defaultBranch,
+    placeholder: knownRef || defaultBranch,
+    initialValue: knownRef || defaultBranch,
   });
   if (isCancel(branchInput)) return false;
   const ref = branchInput.trim() || defaultBranch;
@@ -452,26 +618,8 @@ async function collectSkill() {
     return false;
   }
 
-  const existingGroups = await loadGroups();
-  const groupChoice = await select({
-    message: 'Which plugin group?',
-    options: [
-      ...existingGroups.map((g) => ({ value: g, label: g })),
-      { value: '__new__', label: 'New group…' },
-    ],
-  });
-  if (isCancel(groupChoice)) return false;
-
-  let groupName = groupChoice;
-  if (groupChoice === '__new__') {
-    const name = await text({
-      message: 'New group name?',
-      placeholder: 'e.g. qa, data, backend',
-      validate: (v) => (/^[a-z0-9-]+$/.test(v.trim()) ? undefined : 'Use a-z, 0-9, and - only'),
-    });
-    if (isCancel(name)) return false;
-    groupName = name.trim();
-  }
+  const groupName = await selectGroup('Which plugin group?');
+  if (groupName === null) return false;
 
   const planned = selected.map((s) => ({ skill: s, name: safeName(s.name) }));
   const conflicts = [];
@@ -1027,59 +1175,99 @@ export async function syncAll({ checkOnly = false } = {}) {
 async function manageCollected() {
   const deps = await readJson(DEPS_FILE);
   const entries = deps.dependencies || [];
-  if (entries.length === 0) {
-    log.info('No third-party skills yet. Use "Add skill" first.');
+  const localDirs = await findLocalSkills();
+
+  // Union of registered deps (even when missing on disk) + local-only skills
+  const depByDir = new Map();
+  for (const d of entries) depByDir.set(`skills/${localNameOf(d)}`, d);
+  const dirs = [...new Set([...localDirs, ...depByDir.keys()])].sort();
+  if (dirs.length === 0) {
+    log.info('No skills yet. Use "Add skill" first.');
     return false;
   }
 
-  let items;
-  try {
-    items = await withSpinner(
-      `Checking ${entries.length} skill(s)…`,
-      () => buildChecklist(entries),
-      (list) => {
-        const n = list.filter((i) => i.status === 'outdated').length;
-        return n > 0 ? `Done: ${n} update(s)` : 'Done: all up to date';
-      },
-    );
-  } catch (e) {
-    log.error(e.message);
-    return false;
+  const byDir = new Map(dirs.map((dir) => [
+    dir,
+    {
+      name: dir.split('/').pop(),
+      dir,
+      dep: depByDir.get(dir) || null,
+      status: depByDir.has(dir) ? 'unknown' : 'local',
+      r: null,
+      error: null,
+    },
+  ]));
+
+  // Ask before hitting upstream; default NO
+  let checked = false;
+  if (entries.length > 0) {
+    const doCheck = await confirm({
+      message: 'Check upstream for updates?',
+      initialValue: false,
+    });
+    if (isCancel(doCheck)) return false;
+    checked = doCheck;
   }
 
-  const outdated = items.filter((i) => i.status === 'outdated');
-  const fresh = items.filter((i) => i.status === 'fresh');
-  const missing = items.filter((i) => i.status === 'missing');
-  const errors = items.filter((i) => i.status === 'error');
+  if (checked) {
+    try {
+      const items = await withSpinner(
+        `Checking ${entries.length} skill(s)…`,
+        () => buildChecklist(entries),
+        (list) => {
+          const n = list.filter((i) => i.status === 'outdated').length;
+          return n > 0 ? `Done: ${n} update(s)` : 'Done: all up to date';
+        },
+      );
+      for (const { dep, status, r, error } of items) {
+        const item = byDir.get(`skills/${localNameOf(dep)}`);
+        if (!item) continue;
+        item.status = status;
+        item.r = r;
+        item.error = error || null;
+      }
+    } catch (e) {
+      log.error(e.message);
+      return false;
+    }
+  }
 
-  for (const i of errors) log.error(`${localNameOf(i.dep)}: check failed (${i.error})`);
+  const all = [...byDir.values()];
+  const outdated = all.filter((i) => i.status === 'outdated');
+  const fresh = all.filter((i) => i.status === 'fresh');
+  const missing = all.filter((i) => i.status === 'missing');
+  const errors = all.filter((i) => i.status === 'error');
+
+  for (const i of errors) log.error(`${i.name}: check failed (${i.error})`);
   if (outdated.length > 0) {
     log.warn(
       `^ ${outdated.length} update(s): ${outdated
-        .map((i) => `${i.r.localName}(+${i.r.remoteOnly.length}/~${i.r.changed})`)
+        .map((i) => `${i.name}(+${i.r.remoteOnly.length}/~${i.r.changed})`)
         .join(', ')}`,
     );
   }
   if (missing.length > 0) {
-    log.warn(`x ${missing.length} missing: ${missing.map((i) => localNameOf(i.dep)).join(', ')}`);
+    log.warn(`x ${missing.length} missing: ${missing.map((i) => i.name).join(', ')}`);
   }
   if (fresh.length > 0) log.success(`${fresh.length} up to date`);
 
-  const options = items.map(({ dep, status, r }) => {
-    const name = localNameOf(dep);
-    const prefix = status === 'outdated' ? '^ ' : status === 'missing' ? 'x ' : status === 'error' ? '? ' : '';
-    let hint = 'check failed';
-    if (status === 'outdated') hint = `+${r.remoteOnly.length} new / ${r.changed} changed @ ${r.sha.slice(0, 8)}`;
-    else if (status === 'fresh') hint = `${r.total} file(s), latest @ ${r.sha.slice(0, 8)}`;
-    else if (status === 'missing') hint = 'missing on disk';
-    return { value: name, label: `${prefix}${name}`, hint };
+  const options = all.map((item) => {
+    const prefix = item.status === 'outdated' ? '^ ' : item.status === 'missing' ? 'x ' : item.status === 'error' ? '? ' : '  ';
+    let hint = item.status === 'local' ? 'local skill' : formatSourceLabel(item.dep);
+    if (item.status === 'outdated') hint = `+${item.r.remoteOnly.length} new / ${item.r.changed} changed @ ${item.r.sha.slice(0, 8)}`;
+    else if (item.status === 'fresh') hint = `${item.r.total} file(s), latest @ ${item.r.sha.slice(0, 8)}`;
+    else if (item.status === 'missing') hint = 'missing on disk';
+    else if (item.status === 'error') hint = 'check failed';
+    return { value: item.name, label: `${prefix}${item.name}`, hint };
   });
 
-  const byName = new Map(items.map((i) => [localNameOf(i.dep), i]));
+  const byName = new Map(all.map((i) => [i.name, i]));
   const picked = await multiselect({
-    message: 'Pick skills (^ = update available, pre-selected)',
+    message: checked
+      ? 'Pick skills (^ = update available, pre-selected)'
+      : 'Pick skills (space to toggle, enter to confirm)',
     options,
-    initialValues: outdated.map((i) => localNameOf(i.dep)),
+    initialValues: outdated.map((i) => i.name),
     required: false,
   });
   if (isCancel(picked)) return false;
@@ -1092,6 +1280,8 @@ async function manageCollected() {
     message: `Action for ${picked.length} skill(s)?`,
     options: [
       { value: 'sync', label: 'Sync from upstream', hint: 'overwrite local (keep local-only files)' },
+      { value: 'rename', label: 'Rename', hint: 'dir + SKILL.md + registry' },
+      { value: 'group', label: 'Change group', hint: 'move to another plugin group' },
       { value: 'remove', label: 'Remove', hint: 'delete local + registry (cannot undo)' },
       { value: 'cancel', label: 'Cancel' },
     ],
@@ -1108,7 +1298,7 @@ async function manageCollected() {
       log.info('All selected skills are already up to date');
       return true;
     }
-    if (skipped > 0) log.message(`Skip ${skipped} up-to-date skill(s)`);
+    if (skipped > 0) log.message(`Skip ${skipped} skill(s) without updates`);
 
     const ok = await confirm({
       message: `Sync ${toSync.length} skill(s) (overwrite local files)?`,
@@ -1121,13 +1311,88 @@ async function manageCollected() {
 
     try {
       await withSpinner('Syncing…', async (msg) => {
-        for (const { r, dep } of toSync) {
-          msg(`Sync ${r.localName}…`);
-          await syncToLocal(r, dep);
+        for (const i of toSync) {
+          msg(`Sync ${i.name}…`);
+          await syncToLocal(i.r, i.dep);
         }
         // Persist resolved.sha / syncedAt written onto dep objects
         await writeJson(DEPS_FILE, deps);
       }, `Synced ${toSync.length} skill(s)`);
+    } catch (e) {
+      log.error(e.message);
+      return false;
+    }
+    await refreshReadme();
+    return true;
+  }
+
+  if (action === 'rename') {
+    if (picked.length !== 1) {
+      log.warn('Rename works on one skill at a time');
+      return true;
+    }
+    const item = byName.get(picked[0]);
+    if (!(await exists(path.join(ROOT, item.dir)))) {
+      log.error(`${item.name} is missing on disk — sync first`);
+      return true;
+    }
+    const newName = await text({
+      message: `New name for ${item.name}?`,
+      placeholder: 'e.g. my-skill',
+      validate: (v) => {
+        const n = v.trim();
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(n)) {
+          return 'Use lowercase letters, numbers, and single hyphens only';
+        }
+        if (n === item.name) return 'Name unchanged';
+        return undefined;
+      },
+    });
+    if (isCancel(newName)) return false;
+
+    const n = newName.trim();
+    const newDir = `${item.dir.slice(0, item.dir.lastIndexOf('/'))}/${n}`;
+    if (await exists(path.join(ROOT, newDir))) {
+      log.error(`Already exists: ${newDir}`);
+      return true;
+    }
+
+    const ok = await confirm({
+      message: `Rename ${item.name} → ${n}? (dir + SKILL.md + registry)`,
+      initialValue: true,
+    });
+    if (isCancel(ok) || !ok) {
+      log.warn('Cancelled');
+      return true;
+    }
+
+    try {
+      await withSpinner('Renaming…', async () => {
+        await renameSkillTo(item, n, deps);
+      }, `Renamed ${item.name} → ${n}`);
+    } catch (e) {
+      log.error(e.message);
+      return false;
+    }
+    await refreshReadme();
+    return true;
+  }
+
+  if (action === 'group') {
+    const groupName = await selectGroup('Which plugin group?');
+    if (groupName === null) return false;
+
+    try {
+      await withSpinner('Moving…', async () => {
+        const mkt = await readJson(MKT_FILE);
+        for (const name of picked) {
+          const item = byName.get(name);
+          moveInMarketplace(mkt, `./${item.dir}`, groupName);
+          if (item.dep) item.dep.target.plugin = groupName;
+        }
+        await writeJson(MKT_FILE, mkt);
+        await writeJson(DEPS_FILE, deps);
+      }, `Moved ${picked.length} skill(s) to ${groupName}`);
     } catch (e) {
       log.error(e.message);
       return false;
@@ -1148,12 +1413,14 @@ async function manageCollected() {
   try {
     await withSpinner('Removing…', async (msg) => {
       const mkt = await readJson(MKT_FILE);
+      const pickedDirs = new Set(picked.map((n) => byName.get(n).dir));
       for (const name of picked) {
+        const item = byName.get(name);
         msg(`Remove ${name}…`);
-        await rm(path.join(SKILLS_ROOT, name), { recursive: true, force: true });
-        removeFromMarketplace(mkt, name);
+        await rm(path.join(ROOT, item.dir), { recursive: true, force: true });
+        removeFromMarketplace(mkt, `./${item.dir}`);
       }
-      deps.dependencies = deps.dependencies.filter((x) => !picked.includes(localNameOf(x)));
+      deps.dependencies = deps.dependencies.filter((x) => !pickedDirs.has(`skills/${localNameOf(x)}`));
       await writeJson(DEPS_FILE, deps);
       await writeJson(MKT_FILE, mkt);
     }, `Removed ${picked.length} skill(s)`);
@@ -1204,6 +1471,7 @@ async function main() {
 /* ---------------- CLI ---------------- */
 
 async function runCli(argv) {
+  if (argv.includes('--no-cache')) cacheEnabled = false;
   const [cmd, ...rest] = argv;
 
   // Debug: node scripts/manage.mjs --list-repo <owner/repo>
@@ -1281,9 +1549,11 @@ Usage:
   npm run readme -- --check      Fail if README table is stale
   node scripts/manage.mjs validate
   node scripts/manage.mjs --list-repo <owner/repo>
+  node scripts/manage.mjs sync --no-cache   bypass GitHub response cache
 
 Env:
-  GITHUB_TOKEN   Optional; higher GitHub API rate limit
+  GITHUB_TOKEN        Optional; higher GitHub API rate limit
+  MANAGE_CACHE_TTL_MS GitHub response cache TTL in ms (default 600000)
 `);
     return;
   }
