@@ -177,6 +177,22 @@
         "plugin": "development",
         "name": "tdd"
       }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "mattpocock/skills",
+        "path": "skills/engineering/improve-codebase-architecture",
+        "branch": "main"
+      },
+      "resolved": {
+        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
+        "syncedAt": "2026-08-15T02:22:38.628Z"
+      },
+      "target": {
+        "plugin": "architecture",
+        "name": "improve-codebase-architecture"
+      }
     }
   ]
 }

@@ -51,7 +51,8 @@
         "./skills/screaming-architecture",
         "./skills/grilling",
         "./skills/domain-modeling",
-        "./skills/grill-with-docs"
+        "./skills/grill-with-docs",
+        "./skills/improve-codebase-architecture"
       ]
     },
     {
