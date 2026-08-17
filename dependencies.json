@@ -154,8 +154,8 @@
         "branch": "main"
       },
       "resolved": {
-        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
-        "syncedAt": "2026-08-14T15:28:50.722Z"
+        "sha": "068b6e0c62393147daf03530149cdce209c93da8",
+        "syncedAt": "2026-08-17T06:48:11.695Z"
       },
       "target": {
         "plugin": "architecture",
@@ -170,8 +170,8 @@
         "branch": "main"
       },
       "resolved": {
-        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
-        "syncedAt": "2026-08-14T15:36:20.652Z"
+        "sha": "068b6e0c62393147daf03530149cdce209c93da8",
+        "syncedAt": "2026-08-17T06:48:11.696Z"
       },
       "target": {
         "plugin": "development",
@@ -186,8 +186,8 @@
         "branch": "main"
       },
       "resolved": {
-        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
-        "syncedAt": "2026-08-15T02:22:38.628Z"
+        "sha": "068b6e0c62393147daf03530149cdce209c93da8",
+        "syncedAt": "2026-08-17T06:48:11.696Z"
       },
       "target": {
         "plugin": "architecture",

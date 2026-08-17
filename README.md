@@ -28,13 +28,13 @@ Auto-generated from local `SKILL.md` + `dependencies.json` + `marketplace.json`.
 | [`vercel-composition-patterns`](skills/vercel-composition-patterns) | frontend | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React composition patterns that scale. Use when refactoring components with boolean prop proliferati… |
 | [`vercel-react-best-practices`](skills/vercel-react-best-practices) | frontend | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be … |
 | [`domain-modeling`](skills/domain-modeling) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-14 | Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or edi… |
-| [`grill-with-docs`](skills/grill-with-docs) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-14 | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as … |
+| [`grill-with-docs`](skills/grill-with-docs) | architecture | mattpocock/skills@main#068b6e0 | 2026-08-17 | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as … |
 | [`grilling`](skills/grilling) | architecture | local | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
-| [`improve-codebase-architecture`](skills/improve-codebase-architecture) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-15 | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill throug… |
+| [`improve-codebase-architecture`](skills/improve-codebase-architecture) | architecture | mattpocock/skills@main#068b6e0 | 2026-08-17 | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill throug… |
 | [`screaming-architecture`](skills/screaming-architecture) | architecture | local | — | Organise and review package structure so directories scream business capabilities (package-by-featur… |
 | [`oapi-codegen-best-practices`](skills/golang/oapi-codegen-best-practices) | golang | local | — | Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server… |
 | [`write-skill`](skills/write-skill) | meta | local | — | Creates or updates Agent Skills following the current agentskills.io specification and guidance. Use… |
-| [`tdd`](skills/tdd) | development | mattpocock/skills@main#8b78b53 | 2026-08-14 | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions … |
+| [`tdd`](skills/tdd) | development | mattpocock/skills@main#068b6e0 | 2026-08-17 | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions … |
 
 <!-- skills:table:end -->
 
