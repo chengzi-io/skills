@@ -35,6 +35,7 @@ Auto-generated from local `SKILL.md` + `dependencies.json` + `marketplace.json`.
 | [`oapi-codegen-best-practices`](skills/golang/oapi-codegen-best-practices) | golang | local | — | Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server… |
 | [`write-skill`](skills/write-skill) | meta | local | — | Creates or updates Agent Skills following the current agentskills.io specification and guidance. Use… |
 | [`tdd`](skills/tdd) | development | mattpocock/skills@main#8b78b53 | 2026-08-14 | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions … |
+| [`eli5`](skills/eli5) | teaching | anthropics/claude-plugins-community@main#f4c9452 | 2026-08-23 | Explain a topic like I'm a 5 year old. Use when the user types /eli5 <topic> or asks for a dead-simp… |
 
 <!-- skills:table:end -->
 

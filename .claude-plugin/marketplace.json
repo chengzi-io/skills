@@ -80,6 +80,14 @@
       "skills": [
         "./skills/tdd"
       ]
+    },
+    {
+      "name": "teaching",
+      "description": "teaching skills",
+      "source": "./",
+      "skills": [
+        "./skills/eli5"
+      ]
     }
   ]
 }

@@ -193,6 +193,22 @@
         "plugin": "architecture",
         "name": "improve-codebase-architecture"
       }
+    },
+    {
+      "type": "skill",
+      "source": {
+        "repo": "anthropics/claude-plugins-community",
+        "path": "eli5/skills/eli5",
+        "branch": "main"
+      },
+      "resolved": {
+        "sha": "f4c9452f5ca091f1be7064d9faab1b001ea21645",
+        "syncedAt": "2026-08-23T07:39:12.919Z"
+      },
+      "target": {
+        "plugin": "teaching",
+        "name": "eli5"
+      }
     }
   ]
 }
