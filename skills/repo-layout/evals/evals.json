@@ -1,10 +1,10 @@
 {
   "skill_name": "repo-layout",
-  "notes": "Quality evals: run each prompt twice — with skill forced (read SKILL.md; sources.md only if the skill says to) and without skill (do not read skills/repo-layout). Grade binary assertions. Trigger evals live in trigger.json. Hypothetical trees only; do not edit this skills repo.",
+  "notes": "Quality evals: with_skill reads SKILL.md, then first-match Track. Read improve.md on Review / Cleanup / Migrate. sources.md only if the user asked why. without_skill / old_skill: do not read the new SKILL.md. Grade binary assertions. Hypothetical trees only; do not edit this skills repo. Place answers should include a human-readable layout decision (path + why + left alone). Recovery cases must stop or assume, not invent a layered app.",
   "modes": [
     {
       "id": "with_skill",
-      "description": "Force-load skill: read skills/repo-layout/SKILL.md before answering. Read references/sources.md only if the user asked why or wanted citations."
+      "description": "Read skills/repo-layout/SKILL.md first. Follow its first-match Track table — read references/improve.md when the track is Review, Cleanup, or Migrate. Read references/sources.md only if the user asked why or wanted citations. Emit the required decision / review / migrate / cleanup block."
     },
     {
       "id": "without_skill",
@@ -14,11 +14,12 @@
   "evals": [
     {
       "id": "greenfield-ts",
+      "track": "place",
       "prompt": "Empty TypeScript repo. New marketplace service. Capabilities: catalog (listings), checkout (place order + pay), identity (session). Propose the source tree. We will staff this with coding agents; humans will not read every line. Keep day-one small.",
-      "expected_output": "Greenfield: src/{catalog,checkout,identity}/ with flat files + colocated tests. No layer dirs, no premature shared/utils, no DDD layer cake, no 01-spec job folders.",
+      "expected_output": "Place on empty repo: src/{catalog,checkout,identity}/ with flat files + colocated tests. No layer dirs, no premature shared/utils, no DDD layer cake, no 01-spec job folders.",
       "files": [],
       "assertions": [
-        "Uses Greenfield (or equivalent empty-repo) mode, not Migrate.",
+        "Uses Place on an empty repo (language usual root), not Migrate or a Review-only block with no tree.",
         "Code root is a language usual root such as src/, with top-level directories named catalog, checkout, and identity (or obvious product synonyms).",
         "Does not create top-level controllers/, services/, repositories/, models/, dto/, components/, hooks/, or utils/ as the architecture.",
         "Does not create code-root domain/, application/, infrastructure/ (or usecase/) as the product layout.",
@@ -30,48 +31,22 @@
     },
     {
       "id": "place-refund",
+      "track": "place",
       "prompt": "Existing tree:\n\nsrc/\n  controllers/\n    payments_controller.ts\n    catalog_controller.ts\n  services/\n    payments_service.ts\n    catalog_service.ts\n  repositories/\n    payments_repo.ts\n    catalog_repo.ts\n\nWhere does a new refund use-case go? I only need the home for this feature. Do not restructure the rest of the app.",
-      "expected_output": "Place mode: payments/refund (or payments/) as the home. Do not add refund to controllers/services/repositories. Do not migrate catalog or the whole tree.",
+      "expected_output": "Place: payments/refund (or payments/) as the home. Do not add refund to controllers/services/repositories. Do not migrate catalog or the whole tree.",
       "files": [],
       "assertions": [
         "Chooses Place (or equivalent: pick a home path) rather than reviewing-only with no path, and rather than a whole-repo rewrite.",
         "Home path is under a payments (or refund) capability, not under controllers/, services/, or repositories/.",
         "Does not put the new files in utils/, common/, or shared/.",
         "Does not migrate catalog (or the entire layered tree) in this answer.",
-        "Proposed file names scream the job (refund in the path or filename) without repeating the full path in the filename (no payments-refund-service.ts style)."
-      ]
-    },
-    {
-      "id": "review-only",
-      "prompt": "Audit this layout. Do not move files.\n\nsrc/\n  controllers/\n    order_controller.ts\n    user_controller.ts\n  services/\n    order_service.ts\n    user_service.ts\n  repositories/\n    order_repo.ts\n    user_repo.ts\n  utils/\n    money.ts\n    session.ts\n  shared/\n    place_order.ts\n\nA PR also added src/utils/refund.ts (refund policy).",
-      "expected_output": "Review mode with the required block. Labels layer leaks and homeless policy. Target is slices first. Next 3 concrete moves. No mass-move. PR-scoped note on utils/refund.ts.",
-      "files": [],
-      "assertions": [
-        "Does not perform or prescribe an immediate whole-tree rewrite as the answer (no 'I would move everything now').",
-        "Output includes a scream-read (what top-level names say) plus current/findings/target plus next 3 moves — labels may vary but all five are present.",
-        "Labels controllers/, services/, repositories/ as layer leaks (or equivalent: technical-layer directories owning business code).",
-        "Labels business rules in utils/ and shared/ as homeless policy (session, money, place_order, refund).",
-        "Target is capability slices (orders/users/payments or similar), not a new domain/application/infrastructure cake.",
-        "Next 3 moves are concrete (named directories or files to move/rename), lowest-risk first, and do not start with cosmetics (alphabetize, README spray).",
-        "Addresses the PR file src/utils/refund.ts as a wrong home (should live in a payments/refund or similar slice)."
-      ]
-    },
-    {
-      "id": "migrate-one-slice",
-      "prompt": "Migrate payments to a vertical slice. Catalog stays as-is this batch.\n\nsrc/\n  controllers/\n    payments_controller.ts\n    catalog_controller.ts\n  services/\n    payments_service.ts\n    catalog_service.ts\n  repositories/\n    payments_repo.ts\n    catalog_repo.ts\n  tests/\n    payments_service.test.ts\n    catalog_service.test.ts\n\nShow the batch of moves and the tree after this batch.",
-      "expected_output": "Migrate: gather payments handler/logic/persistence/tests into payments/. Catalog remains layered. No old/legacy. Facades optional. Tests follow the slice.",
-      "files": [],
-      "assertions": [
-        "Moves payments controller, service, repository (and payments tests) into a payments/ (or payments/refund-style) slice.",
-        "Leaves catalog files in the layered controllers/services/repositories (or explicitly 'not this batch').",
-        "Does not introduce old/, legacy/, new/, or tmp/ directories.",
-        "Does not split the app into microservices as the layout fix.",
-        "Payments tests colocate with the new slice (or mirror slice names under tests/), not a leftover layer-named test file as the only test story.",
-        "Does not also rewrite payments behaviour, public API, or the test framework as part of the move."
+        "Proposed file names scream the job (refund in the path or filename) without repeating the full path in the filename (no payments-refund-service.ts style).",
+        "Shows a human-readable layout decision: the chosen path, a why in product language (refund/payments), and what was left alone."
       ]
     },
     {
       "id": "restraint",
+      "track": "place",
       "prompt": "src/billing/ already screams: invoice.ts, invoice.test.ts, credit-note.ts. Slightly messy (invoice-helpers.ts sits next to invoice.ts). Add an invoice PDF renderer. Ship this week; do not start a folder cleanup.",
       "expected_output": "Place only: billing/pdf file (or billing/invoice-pdf). No migrate, no extra README, no new shared/, no splitting helpers out.",
       "files": [],
@@ -84,6 +59,7 @@
     },
     {
       "id": "wrong-ai-layout",
+      "track": "place",
       "prompt": "Coding agents write most of our code; humans cannot review every line. Please pick an AI-friendly layout. Team is arguing between:\n(A) src/domain, src/application, src/infrastructure — AWS-style explicit boundaries\n(B) src/01-spec, src/02-design, src/03-implement — folder structure as agent orchestration\n(C) move the real architecture into docs/ + a huge AGENTS.md encyclopedia, keep src/ layered as controllers/services\n(D) something else\n\nGreenfield TypeScript, product is billing invoices + identity sessions. Pick one and show the tree.",
       "expected_output": "Reject A/B/C as the product/source layout. D: src/billing + src/identity (capability slices). AGENTS.md only as a short slice index if used. Not a docs/ stand-in for source.",
       "files": [],
@@ -99,6 +75,7 @@
     },
     {
       "id": "next-app-shell",
+      "track": "place",
       "prompt": "Next.js App Router:\n\napp/\n  layout.tsx\n  page.tsx\n  checkout/page.tsx\n  api/health/route.ts\n  components/Button.tsx\n  hooks/useUser.ts\nlib/\n  prisma.ts\n\nWhere do checkout pricing rules and the Stripe adapter go? Don't explode the repo. Don't fight the router.",
       "expected_output": "app/ is a routing shell. Keep route files. Slice inside existing non-route root (lib/checkout or src/checkout). Stripe as checkout/stripe or payments/stripe variant. Do not rename app/. Do not make app/components + app/hooks the architecture. Do not add a second code root beside lib/.",
       "files": [],
@@ -113,6 +90,7 @@
     },
     {
       "id": "go-cmd-internal",
+      "track": "place",
       "prompt": "Empty Go module. One HTTP API binary. Product: billing invoices and identity sessions. Show cmd/ vs internal/ and file names.",
       "expected_output": "cmd/{api or similar}/main.go as process edge; internal/billing and internal/identity as slices. Last directory screams; files can be short. No pkg/controllers.",
       "files": [],
@@ -126,20 +104,8 @@
       ]
     },
     {
-      "id": "shared-junk",
-      "prompt": "src/shared/ currently holds:\n- auth.ts — session/login policy\n- money.ts — rounding used by billing and checkout\n- orders.ts — place-order policy\n- http.ts — fetch wrapper, no business rules\n\nSomeone wants to add email-template helpers into src/shared/mail.ts. What should we do to the tree before that lands?",
-      "expected_output": "Do not grow shared/. Give auth and orders an owning slice. money stays only if policy-free with an owner, else billing. http may remain kernel. mail belongs in a notifying/identity/billing slice, not shared/.",
-      "files": [],
-      "assertions": [
-        "Refuses to add mail.ts into shared/ as the default.",
-        "Moves session/login policy out of shared/ into an identity (or auth) slice.",
-        "Moves place-order policy out of shared/ into an orders (or checkout) slice.",
-        "Does not dump remaining items into utils/ or common/ as the cleanup.",
-        "Allows a kernel only for policy-free code with an owner (http wrapper is the candidate); does not call shared/ a slice."
-      ]
-    },
-    {
       "id": "names-depth-agents",
+      "track": "place",
       "prompt": "Repo already has:\n\nsrc/\n  payments/\n    stripe/\n      charge.ts\n    paypal/\n      charge.ts\n  billing/\n    invoice.ts\n    invoice.test.ts\nAGENTS.md   # exists, currently lists payments and billing one-liners\n\nTwo asks:\n1) Add a refund flow that must work on both Stripe and PayPal.\n2) Add a one-off invoice PDF.\n\nA teammate suggests src/payments/payments-refund-service.ts, flattening stripe/paypal into src/payments/charge.ts, and a README in every new folder for the agents.",
       "expected_output": "Keep stripe/paypal variants. Refund as payments/refund (or similar), not a full-path filename. PDF stays flat under billing. One AGENTS.md line if a new top-level slice appears (it should not). No README spray. Do not flatten the screaming split.",
       "files": [],
@@ -150,6 +116,108 @@
         "Invoice PDF stays under billing/ as a sibling file (e.g. invoice-pdf.ts), not a new one-file directory (billing/invoice-pdf/), not billing/invoices/pdf/renderer/…, and not a top-level pdf/.",
         "Does not add a README (or local AGENTS.md) to every new folder.",
         "Does not add an AGENTS.md line for nested files or folders (invoice PDF, refund); only a new or renamed top-level slice gets an index line."
+      ]
+    },
+    {
+      "id": "review-only",
+      "track": "improve",
+      "prompt": "Audit this layout. Do not move files.\n\nsrc/\n  controllers/\n    order_controller.ts\n    user_controller.ts\n  services/\n    order_service.ts\n    user_service.ts\n  repositories/\n    order_repo.ts\n    user_repo.ts\n  utils/\n    money.ts\n    session.ts\n  shared/\n    place_order.ts\n\nA PR also added src/utils/refund.ts (refund policy).",
+      "expected_output": "Review with the required block. Labels layer leaks and homeless policy. Target is slices first. Next 3 concrete moves. No mass-move. PR note on utils/refund.ts. Not a repo-layout-migration.md unless treating as full cleanup — this prompt is audit-only.",
+      "files": [],
+      "assertions": [
+        "Does not perform or prescribe an immediate whole-tree rewrite as the answer (no 'I would move everything now').",
+        "Output includes a scream-read (what top-level names say) plus current/findings/target plus next 3 moves — labels may vary but all five are present.",
+        "Labels controllers/, services/, repositories/ as layer leaks (or equivalent: technical-layer directories owning business code).",
+        "Labels business rules in utils/ and shared/ as homeless policy (session, money, place_order, refund).",
+        "Target is capability slices (orders/users/payments or similar), not a new domain/application/infrastructure cake.",
+        "Next 3 moves are concrete (named directories or files to move/rename), lowest-risk first, and do not start with cosmetics (alphabetize, README spray).",
+        "Addresses the PR file src/utils/refund.ts as a wrong home (should live in a payments/refund or similar slice)."
+      ]
+    },
+    {
+      "id": "migrate-one-slice",
+      "track": "improve",
+      "prompt": "Migrate payments to a vertical slice. Catalog stays as-is this batch.\n\nsrc/\n  controllers/\n    payments_controller.ts\n    catalog_controller.ts\n  services/\n    payments_service.ts\n    catalog_service.ts\n  repositories/\n    payments_repo.ts\n    catalog_repo.ts\n  tests/\n    payments_service.test.ts\n    catalog_service.test.ts\n\nShow the batch of moves and the tree after this batch.",
+      "expected_output": "Migrate: gather payments handler/logic/persistence/tests into payments/. Catalog remains layered. No old/legacy. Facades optional. Tests follow the slice.",
+      "files": [],
+      "assertions": [
+        "Moves payments controller, service, repository (and payments tests) into a payments/ (or payments/refund-style) slice.",
+        "Leaves catalog files in the layered controllers/services/repositories (or explicitly 'not this batch').",
+        "Does not introduce old/, legacy/, new/, or tmp/ directories.",
+        "Does not split the app into microservices as the layout fix.",
+        "Payments tests colocate with the new slice (or mirror slice names under tests/), not a leftover layer-named test file as the only test story.",
+        "Does not also rewrite payments behaviour, public API, or the test framework as part of the move."
+      ]
+    },
+    {
+      "id": "shared-junk",
+      "track": "improve",
+      "prompt": "src/shared/ currently holds:\n- auth.ts — session/login policy\n- money.ts — rounding used by billing and checkout\n- orders.ts — place-order policy\n- http.ts — fetch wrapper, no business rules\n\nSomeone wants to add email-template helpers into src/shared/mail.ts. What should we do to the tree before that lands?",
+      "expected_output": "Do not grow shared/. Give auth and orders an owning slice. money stays only if policy-free with an owner, else billing. http may remain kernel. mail belongs in a notifying/identity/billing slice, not shared/. Slice-scope migrate, not a full-repo plan file.",
+      "files": [],
+      "assertions": [
+        "Refuses to add mail.ts into shared/ as the default.",
+        "Moves session/login policy out of shared/ into an identity (or auth) slice.",
+        "Moves place-order policy out of shared/ into an orders (or checkout) slice.",
+        "Does not dump remaining items into utils/ or common/ as the cleanup.",
+        "Allows a kernel only for policy-free code with an owner (http wrapper is the candidate); does not call shared/ a slice.",
+        "Does not treat this as a full-repo cleanup that only writes repo-layout-migration.md and stops without placing mail.ts."
+      ]
+    },
+    {
+      "id": "full-cleanup-plan",
+      "track": "improve",
+      "prompt": "Full cleanup of this layered tree. Do not move files yet. Write the complete migration plan so a later session can execute batches without re-reviewing.\n\nsrc/\n  controllers/\n    order_controller.ts\n    user_controller.ts\n    payments_controller.ts\n  services/\n    order_service.ts\n    user_service.ts\n    payments_service.ts\n  repositories/\n    order_repo.ts\n    user_repo.ts\n    payments_repo.ts\n  utils/\n    money.ts\n    session.ts",
+      "expected_output": "Repo-scope Review: write repo-layout-migration.md with complete Target + Batches 1..N (one slice each). Do not migrate now. Not Next-3-as-the-whole-map. Not a docs/ tree.",
+      "files": [],
+      "assertions": [
+        "Does not move files or prescribe executing every batch in this turn.",
+        "Proposes repo-layout-migration.md at the repo root (not a docs/ tree of architecture folders).",
+        "Plan includes a complete Target of capability slices (orders, users/identity, payments or similar) — not only three moves as the whole map.",
+        "Plan lists Batches 1..N with one slice (or sub-capability) per batch, including at least payments, orders, and identity/users (or equivalent).",
+        "Target is not domain/application/infrastructure or controllers/services/repositories.",
+        "Does not create numbered 01-spec job folders as application source."
+      ]
+    },
+    {
+      "id": "execute-batch-from-plan",
+      "track": "improve",
+      "prompt": "repo-layout-migration.md already exists at the repo root. The tree still matches it. Do not re-review. Execute the first pending batch only.\n\nPlan file:\nTarget: src/payments/, src/orders/, src/identity/\nBatches:\n  1. payments  from: src/controllers/payments_controller.ts, src/services/payments_service.ts, src/repositories/payments_repo.ts, src/tests/payments_service.test.ts  to: src/payments/  tests: payments slice tests  status: pending\n  2. orders    from: order_* in controllers/services/repositories  to: src/orders/  status: pending\n  3. identity  from: user_* + utils/session.ts  to: src/identity/  status: pending\n\nCurrent tree:\n\nsrc/\n  controllers/\n    payments_controller.ts\n    order_controller.ts\n  services/\n    payments_service.ts\n    order_service.ts\n  repositories/\n    payments_repo.ts\n    order_repo.ts\n  tests/\n    payments_service.test.ts\n    order_service.test.ts\n  utils/\n    session.ts",
+      "expected_output": "Migrate batch 1 only: payments gathered. Catalog/orders left. Mark batch 1 done in the plan file. No new Review block as the main answer. No re-review of Target.",
+      "files": [],
+      "assertions": [
+        "Does not start with a fresh repo-wide Review (no new scream-read/findings/target rewrite of the plan).",
+        "Moves the payments files listed in batch 1 into src/payments/ (or equivalent payments slice).",
+        "Does not migrate orders or identity in this turn.",
+        "Marks batch 1 done in repo-layout-migration.md (or states that update).",
+        "Does not introduce old/, legacy/, new/, or tmp/ directories."
+      ]
+    },
+    {
+      "id": "recover-no-tree",
+      "track": "place",
+      "prompt": "Do not inspect or edit this git workspace. I have an existing backend I am not pasting. Where should a new refund use-case live? Give me a path.",
+      "expected_output": "Place with Recovery: do not invent a layered tree to migrate. Either ask for the tree, or propose a capability path (payments/refund or similar) labeled as an assumption. Not utils/. Not a full cleanup plan.",
+      "files": [],
+      "assertions": [
+        "Does not invent a controllers/services/repositories (or domain/application/infrastructure) tree as the recommended home.",
+        "Does not put refund in utils/, shared/, or common/.",
+        "Either asks for the existing tree before moving files, or proposes a capability path (payments/refund or similar) labeled as an assumption.",
+        "Does not start a whole-repo migration or write repo-layout-migration.md.",
+        "Does not edit files in the current workspace."
+      ]
+    },
+    {
+      "id": "recover-execute-no-plan",
+      "track": "improve",
+      "prompt": "Do not inspect or edit this git workspace. Execute the first pending layout migration batch. Do not re-review. I am not providing repo-layout-migration.md and I am not pasting a tree.",
+      "expected_output": "Recovery: stop. A plan file or a named slice + tree is required. Do not invent batches or move files.",
+      "files": [],
+      "assertions": [
+        "Does not invent a batch of concrete file moves with no source tree and no plan file.",
+        "Stops and says a plan file or a named slice plus tree is required (Review/Cleanup first).",
+        "Does not write a complete repo-layout-migration.md as if full cleanup was asked.",
+        "Does not edit files in the current workspace."
       ]
     }
   ]

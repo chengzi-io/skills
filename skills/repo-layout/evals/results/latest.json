@@ -1,12 +1,9 @@
 {
   "skill_name": "repo-layout",
-  "latest_run": "2026-08-24-mimo-deepseek.json",
-  "model": "with_skill OpenCode/mimo-v2.5; trigger+without OpenCode/deepseek-v4-flash",
+  "latest_run": "2026-08-25-place-first.json",
+  "model": "with_skill OpenCode/mimo-v2.5; trigger OpenCode/deepseek-v4-flash",
   "summary": {
-    "trigger_agreement": "19/19",
-    "quality_with_skill": "60/60 assertions, 10/10 cases",
-    "quality_without_skill": "46/60 assertions, 3/10 cases",
-    "skill_delta_assertions": 14,
-    "skill_delta_cases": 7
+    "trigger_agreement": "21/21",
+    "quality_with_skill_sampled": "place-refund 5/5, review-only 7/7, execute-batch-from-plan 5/5, shared-junk 6/6, full-cleanup-plan 6/6 (after 1 fix loop each on shared-junk and full-cleanup-plan)"
   }
 }

@@ -1,0 +1,30 @@
+{
+  "skill_name": "repo-layout",
+  "date": "2026-08-25",
+  "note": "Place-first split: SKILL.md default Place; Review/Migrate/plan file in references/improve.md. Sampled the tracks that changed; prior Place cases were not all re-run.",
+  "models": {
+    "trigger": "OpenCode/deepseek-v4-flash",
+    "with_skill": "OpenCode/mimo-v2.5",
+    "grader": "grok-4.6"
+  },
+  "trigger": {
+    "agreement": "21/21",
+    "should_activate_hits": "13/13",
+    "should_not_activate_hits": "8/8"
+  },
+  "quality": {
+    "with_skill_sampled": {
+      "place-refund": { "assertions_pass": "5/5", "case_pass": true },
+      "review-only": { "assertions_pass": "7/7", "case_pass": true, "notes": "Loaded improve.md; audit block; no mass-move." },
+      "execute-batch-from-plan": { "assertions_pass": "5/5", "case_pass": true, "notes": "No re-review; payments only; marked batch 1 done." },
+      "shared-junk": {
+        "iter1": "fail — Place into shared/mail.ts, skipped migrate",
+        "iter2": { "assertions_pass": "6/6", "case_pass": true, "notes": "After: do not Place into mixed-duty catch-all." }
+      },
+      "full-cleanup-plan": {
+        "iter1": "fail — plan in chat, never named repo-layout-migration.md",
+        "iter2": { "assertions_pass": "6/6", "case_pass": true, "notes": "After: deliverable is the file path." }
+      }
+    }
+  }
+}
