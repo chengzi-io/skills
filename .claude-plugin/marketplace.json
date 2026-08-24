@@ -48,7 +48,7 @@
       "source": "./",
       "category": "engineering",
       "skills": [
-        "./skills/screaming-architecture",
+        "./skills/repo-layout",
         "./skills/grilling",
         "./skills/domain-modeling",
         "./skills/grill-with-docs",
