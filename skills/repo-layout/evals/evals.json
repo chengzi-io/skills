@@ -1,0 +1,91 @@
+{
+  "skill_name": "repo-layout",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This is a small shop codebase organized by technical layer. Add a refund for an existing order: take an order id and amount, mark the order refunded, and expose it so an HTTP handler can call it. Implement it in this project. Do not rewrite unrelated files.",
+      "expected_output": "New refund code lands in a business slice (e.g. refunds/ or orders/) next to a colocated test, not under controllers/, services/, models/, or utils/. Existing layered files untouched.",
+      "files": ["evals/fixtures/layered-shop"],
+      "expectations": [
+        "New refund files live under a business slice path after src/ (orders, refunds, or similar), not under src/controllers, src/services, src/models, or src/utils",
+        "No new directory named controllers, services, models, handlers, helpers, or utils was created",
+        "The refund use case is not split across the technical layers — its logic lives in one colocated business-slice location",
+        "Existing layered files were not rewritten as part of adding refund"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add Stripe card charging to checkout payment. The Stripe SDK may be stubbed.",
+      "expected_output": "Stripe coupling lives under a path segment named stripe. Generic charge.ts keeps no Stripe SDK types, payloads, or provider branches. No empty paypal/ directory.",
+      "files": ["evals/fixtures/checkout-generic"],
+      "expectations": [
+        "Stripe-specific code lives in a path that contains a stripe segment (directory or filename)",
+        "src/checkout/payment/charge.ts has no Stripe SDK import, Stripe types, or provider === stripe branching",
+        "No paypal directory exists",
+        "No new utils, helpers, or common directory was created"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Fix the SQL injection in src/checkout/payment/charge.ts. The query concatenates orderId into SQL.",
+      "expected_output": "Parameterized or otherwise safe query in the existing file. No new directories, no refactor, no restructuring.",
+      "files": ["evals/fixtures/checkout-sql"],
+      "expectations": [
+        "src/checkout/payment/charge.ts no longer concatenates orderId into the SQL string",
+        "No new directory was created under src/",
+        "No file was added under utils, helpers, common, or stripe",
+        "place_order.ts was not rewritten except for import fixes if needed"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Review the directory tree under src/ of this project and report any structural problems you find. Do not modify any code.",
+      "expected_output": "A verdict table flagging src/utils/stripe.ts (stop — provider hidden in a generic directory), src/checkout/services/refund.ts (stop — technical-role directory), src/orders/create_order.ts (smell — repeated noun), and passing the plain leafs. No files modified.",
+      "files": ["evals/fixtures/mixed-shop"],
+      "expectations": [
+        "Output is a table with path, verdict, and reason columns",
+        "src/utils/stripe.ts is flagged stop because a provider is hidden in a generic directory",
+        "src/checkout/services/refund.ts is flagged stop because services is a technical role",
+        "src/orders/create_order.ts is flagged smell because the filename repeats the slice noun",
+        "No file under src/ was modified"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "In this project the filenames restate their directory's concept: place_order.ts in checkout, create_order.ts in orders, charge_card.ts in payments. Fix the naming and imports.",
+      "expected_output": "All three renames applied inline as one normal change. No migration plan file, no new directories, nothing else touched.",
+      "files": ["evals/fixtures/three-slices"],
+      "expectations": [
+        "src/checkout/place_order.ts, src/orders/create_order.ts, and src/payments/charge_card.ts no longer exist",
+        "The renamed files exist as src/checkout/place.ts, src/orders/create.ts, and src/payments/charge.ts",
+        "No migration plan file was created (no docs/plans/repo-layout-migration.md or similar plan document)",
+        "No files or directories changed beyond the three renames and their import fixes"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "This repo is organized by technical layer. Reorganize the directories so the tree reflects business capabilities. Propose the target tree, then move only the first slice in this pass. Leave the rest for later passes. Preserve behavior.",
+      "expected_output": "A target tree whose first level under src/ is business slices rather than controllers/services/models. Only one slice actually moved in this pass. The moved slice collapses its former layers into one use-case leaf, not create.ts beside place.ts from controller vs service. Behavior preserved.",
+      "files": ["evals/fixtures/layered-shop"],
+      "expectations": [
+        "The agent stated a target tree whose src/ first level is business slices rather than controllers/services/models/utils or generic dumps (shared, common, helpers)",
+        "The actual file moves in this pass cover one slice only, not the entire src tree",
+        "The moved slice keeps no technical-role naming (no controllers/, services/, models/ paths and no *_controller, *_service filenames)",
+        "No payment-provider folders (stripe, paypal) were invented",
+        "Moved files keep their behavior (no new business logic in the move)"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Add order cancellation to the orders module: take an order id and mark the order cancelled. Implement it in this project.",
+      "expected_output": "A cancel leaf inside the existing orders slice, named without repeating the slice noun (cancel.ts, not cancel_order.ts). No new technical-role directories.",
+      "files": ["evals/fixtures/orders-naming"],
+      "expectations": [
+        "The new file lives inside the existing orders slice (src/orders/ or similar business slice), not in a new controllers/services/models/utils directory",
+        "The new file name does not repeat the slice noun — no cancel_order-style filename",
+        "No new technical-role directory was created",
+        "The existing place_order.ts was not rewritten"
+      ]
+    }
+  ]
+}

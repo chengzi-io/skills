@@ -1,0 +1,3 @@
+interface:
+  display_name: "Repo layout"
+  short_description: "Place and evolve code so paths name the business slice"
