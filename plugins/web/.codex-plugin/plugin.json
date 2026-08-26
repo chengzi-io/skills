@@ -1,0 +1,17 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "description": "Web, React, and UI skills. Install at project scope in frontend repositories.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Chengzi Web",
+    "shortDescription": "Web, React, and UI skills",
+    "developerName": "JoJoJotarou",
+    "category": "Engineering"
+  }
+}

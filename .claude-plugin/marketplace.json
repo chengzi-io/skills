@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "chengzi-skills",
-  "description": "Reusable Agent Skills. Install foundations at user scope; install golang or python at project scope.",
+  "description": "Reusable Agent Skills. Install foundations at user scope; install golang, python, or web at project scope.",
   "owner": {
     "name": "JoJoJotarou",
     "url": "https://github.com/chengzi-io/skills"
@@ -12,42 +12,26 @@
       "description": "Language-agnostic skills: requirements, TDD, architecture, and decision workflows. Install at user scope for every project.",
       "source": "./plugins/foundations",
       "category": "productivity",
-      "version": "0.1.0",
-      "skills": [
-        "./skills/writing/write-adr",
-        "./skills/writing/write-bdd",
-        "./skills/writing/write-ears",
-        "./skills/writing-openapi-specs",
-        "./skills/frontend-design",
-        "./skills/prototype",
-        "./skills/emil-design-eng",
-        "./skills/web-design-guidelines",
-        "./skills/vercel-react-best-practices",
-        "./skills/vercel-composition-patterns",
-        "./skills/shadcn",
-        "./skills/repo-layout",
-        "./skills/grilling",
-        "./skills/domain-modeling",
-        "./skills/grill-with-docs",
-        "./skills/improve-codebase-architecture",
-        "./skills/tdd",
-        "./skills/eli5"
-      ]
+      "version": "0.1.0"
     },
     {
       "name": "golang",
       "description": "Go engineering skills. Install at project scope in Go repositories.",
       "source": "./plugins/golang",
       "category": "engineering",
-      "version": "0.1.0",
-      "skills": [
-        "./skills/golang/oapi-codegen-best-practices"
-      ]
+      "version": "0.1.0"
     },
     {
       "name": "python",
       "description": "Python engineering skills. Install at project scope in Python repositories.",
       "source": "./plugins/python",
+      "category": "engineering",
+      "version": "0.1.0"
+    },
+    {
+      "name": "web",
+      "description": "Web, React, and UI skills. Install at project scope in frontend repositories.",
+      "source": "./plugins/web",
       "category": "engineering",
       "version": "0.1.0"
     }

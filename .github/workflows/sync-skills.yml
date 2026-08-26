@@ -53,6 +53,6 @@ jobs:
           branch: chore/sync-skills
           delete-branch: true
           add-paths: |
-            skills/**
+            plugins/**
             dependencies.json
             README.md

@@ -11,7 +11,7 @@
  *   node scripts/manage.mjs --list-repo <owner/repo>
  *   node scripts/manage.mjs sync --no-cache   bypass the GitHub response cache
  *
- * Flow: repo → find SKILL.md → pick → download to skills/<name>/ →
+ * Flow: repo → find SKILL.md → pick → download to plugins/<group>/skills/<name>/ →
  *       write dependencies.json + marketplace.json
  *
  * GitHub responses (default branch, tree, raw files, commit SHA) are cached
@@ -33,6 +33,7 @@ const DEPS_FILE = path.join(ROOT, 'dependencies.json');
 const MKT_FILE = path.join(ROOT, '.claude-plugin', 'marketplace.json');
 const README_FILE = path.join(ROOT, 'README.md');
 const SKILLS_ROOT = path.join(ROOT, 'skills');
+const PLUGINS_ROOT = path.join(ROOT, 'plugins');
 const GH_API = 'https://api.github.com';
 const CONCURRENCY = 6;
 const CACHE_DIR = path.join(ROOT, 'node_modules', '.cache', 'manage');
@@ -73,13 +74,25 @@ function printSection(title, lines) {
   log.message(lines.length ? lines.join('\n') : '(none)');
 }
 
-/** marketplace skill path -> plugin name (key without leading ./) */
+/** Canonical skill path (plugins/<name>/skills/<skill> or leftover skills/…) → plugin */
 async function skillToPlugin() {
-  const mkt = await readJson(MKT_FILE);
   const map = new Map();
+  for (const dir of await findLocalSkills()) {
+    const plugin = pluginOfRelPath(dir);
+    if (plugin) map.set(dir, plugin);
+  }
+  const mkt = await readJson(MKT_FILE);
   for (const p of mkt.plugins || []) {
+    const src = typeof p.source === 'string' ? p.source : p.source?.path;
     for (const s of p.skills || []) {
-      map.set(s.replace(/^\.\//, ''), p.name);
+      const key = s.replace(/^\.\//, '');
+      if (map.has(key)) continue;
+      if (src) {
+        const underPlugin = relPosix(path.join(ROOT, src, key));
+        if (map.has(underPlugin)) continue;
+        map.set(underPlugin, p.name);
+      }
+      map.set(key, p.name);
     }
   }
   return map;
@@ -135,6 +148,28 @@ function formatSkillList(rows, { pluginOrder = [] } = {}) {
 /** Local dir name: target.name, else last segment of source.path */
 export function localNameOf(dep) {
   return safeName(dep.target?.name || dep.source.path.split('/').pop() || 'skill');
+}
+
+function relPosix(abs) {
+  return path.relative(ROOT, abs).split(path.sep).join('/');
+}
+
+function pluginSkillsDir(pluginName) {
+  return path.join(PLUGINS_ROOT, pluginName, 'skills');
+}
+
+function destFor(pluginName, skillName) {
+  return path.join(pluginSkillsDir(pluginName), skillName);
+}
+
+export function depLocalDir(dep) {
+  const name = localNameOf(dep);
+  return dep.target?.plugin ? destFor(dep.target.plugin, name) : path.join(SKILLS_ROOT, name);
+}
+
+function pluginOfRelPath(rel) {
+  const m = String(rel).match(/^plugins\/([^/]+)\/skills\//);
+  return m ? m[1] : null;
 }
 
 export function parseRepo(input) {
@@ -307,9 +342,32 @@ function displayGroup(root) {
   return segs[0];
 }
 
-/** Find local dirs with SKILL.md; paths relative to ROOT */
-export async function findLocalSkills(dir = SKILLS_ROOT) {
+/** Find local dirs with SKILL.md; paths relative to ROOT (posix). */
+export async function findLocalSkills() {
   const out = [];
+  const seen = new Set();
+  const add = (rel) => {
+    const key = rel.split(path.sep).join('/');
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(key);
+  };
+
+  let plugins = [];
+  try { plugins = await readdir(PLUGINS_ROOT, { withFileTypes: true }); }
+  catch { plugins = []; }
+  for (const p of plugins) {
+    if (!p.isDirectory() || p.name.startsWith('.')) continue;
+    let entries = [];
+    try { entries = await readdir(pluginSkillsDir(p.name), { withFileTypes: true }); }
+    catch { continue; }
+    for (const e of entries) {
+      if (!e.isDirectory() || e.name.startsWith('.')) continue;
+      const full = path.join(pluginSkillsDir(p.name), e.name);
+      if (await exists(path.join(full, 'SKILL.md'))) add(relPosix(full));
+    }
+  }
+
   const walk = async (d) => {
     let entries;
     try { entries = await readdir(d, { withFileTypes: true }); }
@@ -318,11 +376,11 @@ export async function findLocalSkills(dir = SKILLS_ROOT) {
       if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
       const full = path.join(d, entry.name);
       if (!entry.isDirectory()) continue;
-      if (await exists(path.join(full, 'SKILL.md'))) out.push(path.relative(ROOT, full));
+      if (await exists(path.join(full, 'SKILL.md'))) add(relPosix(full));
       else await walk(full);
     }
   };
-  if (await exists(dir)) await walk(dir);
+  if (await exists(SKILLS_ROOT)) await walk(SKILLS_ROOT);
   return out.sort();
 }
 
@@ -386,17 +444,15 @@ function ensurePlugin(mkt, groupName) {
       name: groupName,
       description: `${groupName} skills`,
       source: `./plugins/${groupName}`,
-      skills: [],
     };
     mkt.plugins.push(plugin);
   }
-  plugin.skills = plugin.skills || [];
   return plugin;
 }
 
 /** Download skill to tmp dir, then replace dest */
 async function downloadSkill({ owner, repo, ref, files, root, dest }) {
-  const tmp = path.join(SKILLS_ROOT, `.tmp-${path.basename(dest)}-${process.pid}`);
+  const tmp = path.join(path.dirname(dest), `.tmp-${path.basename(dest)}-${process.pid}`);
   await rm(tmp, { recursive: true, force: true });
   try {
     await mkdir(tmp, { recursive: true });
@@ -498,7 +554,11 @@ export function moveInMarketplace(mkt, relPath, groupName) {
     p.skills = p.skills.filter((s) => s !== relPath);
   }
   const plugin = ensurePlugin(mkt, groupName);
-  if (!plugin.skills.includes(relPath)) plugin.skills.push(relPath);
+  if (Array.isArray(plugin.skills)) {
+    const skillName = relPath.split('/').pop();
+    const pluginRel = `./skills/${skillName}`;
+    if (!plugin.skills.includes(pluginRel)) plugin.skills.push(pluginRel);
+  }
   // Drop groups left empty by the move (keep main + plugins without a skills list)
   mkt.plugins = mkt.plugins.filter((p) => {
     if (p.name === 'chengzi-skills') return true;
@@ -627,9 +687,10 @@ async function collectSkill() {
   if (groupName === null) return false;
 
   const planned = selected.map((s) => ({ skill: s, name: safeName(s.name) }));
+  const existingNames = new Set((await findLocalSkills()).map((d) => d.split('/').pop()));
   const conflicts = [];
   for (const p of planned) {
-    if (await exists(path.join(SKILLS_ROOT, p.name))) conflicts.push(p.name);
+    if (existingNames.has(p.name) || await exists(destFor(groupName, p.name))) conflicts.push(p.name);
   }
   if (conflicts.length > 0) {
     const overwrite = await confirm({
@@ -657,14 +718,13 @@ async function collectSkill() {
     await withSpinner('Downloading…', async (msg) => {
       for (const { skill: s, name } of planned) {
         msg(`Download ${name}…`);
+        await mkdir(pluginSkillsDir(groupName), { recursive: true });
         await downloadSkill({
           owner, repo, ref, files: s.files, root: s.root,
-          dest: path.join(SKILLS_ROOT, name),
+          dest: destFor(groupName, name),
         });
 
-        const relPath = `./skills/${name}`;
-        const plugin = ensurePlugin(mkt, groupName);
-        if (!plugin.skills.includes(relPath)) plugin.skills.push(relPath);
+        ensurePlugin(mkt, groupName);
 
         const sha = await resolveCommitSha(owner, repo, ref);
         const added = upsertDependency(deps, {
@@ -691,7 +751,7 @@ async function collectSkill() {
         plugin: r.group,
         source: 'new',
         local: 'yes',
-        path: `skills/${r.name}`,
+        path: relPosix(destFor(r.group, r.name)),
       })),
       { pluginOrder: [...new Set(results.map((r) => r.group))] },
     ),
@@ -712,14 +772,14 @@ export async function collectSkillRows() {
 
   const depByPath = new Map();
   for (const d of deps.dependencies || []) {
-    depByPath.set(`skills/${localNameOf(d)}`, d);
+    depByPath.set(relPosix(depLocalDir(d)), d);
   }
 
   // union: every local skill + every registered dep (even if missing on disk)
   const paths = new Set([...localDirs, ...depByPath.keys()]);
   const rows = await Promise.all([...paths].sort().map(async (skillPath) => {
     const name = skillPath.split('/').pop();
-    const plugin = pluginOf.get(skillPath) || '-';
+    const plugin = pluginOfRelPath(skillPath) || pluginOf.get(skillPath) || '-';
     const dep = depByPath.get(skillPath);
     const source = dep ? formatSourceLabel(dep) : 'local';
     const syncedAt = dep?.resolved?.syncedAt || '';
@@ -868,6 +928,12 @@ async function validateAll() {
       if (!['skill', 'agent'].includes(d.type)) err(`Bad type: ${JSON.stringify(d)}`);
       if (!d.source?.repo || !d.source?.path) err(`Missing source.repo/path: ${JSON.stringify(d)}`);
       if (!d.target?.plugin) err(`Missing target.plugin: ${JSON.stringify(d)}`);
+      const name = localNameOf(d);
+      const expected = relPosix(depLocalDir(d));
+      const actual = localDirs.find((dir) => dir.split('/').pop() === name);
+      if (actual && actual !== expected) {
+        err(`${name}: on disk at ${actual}, dependencies.json target.plugin is ${d.target.plugin}`);
+      }
       const refs = ['branch', 'tag', 'release'].filter((k) => d.source?.[k]);
       if (refs.length > 1) err(`${d.source?.repo}: use only one of branch/tag/release`);
       if (!d.resolved?.sha) {
@@ -885,18 +951,36 @@ async function validateAll() {
 
   await section('marketplace.json ok', async () => {
     const mkt = await readJson(MKT_FILE);
-    const declared = new Set();
+    const names = new Set();
     for (const p of mkt.plugins ?? []) {
+      if (!p.name) { err('marketplace plugin missing name'); continue; }
+      if (names.has(p.name)) err(`duplicate plugin: ${p.name}`);
+      names.add(p.name);
+      const src = typeof p.source === 'string' ? p.source : p.source?.path;
+      if (!src) {
+        err(`${p.name}: missing source`);
+        continue;
+      }
+      const pluginRoot = path.join(ROOT, src);
+      if (!(await exists(pluginRoot))) err(`${p.name}: source not found: ${src}`);
       for (const s of p.skills ?? []) {
-        declared.add(s);
-        if (!(await exists(path.join(ROOT, s, 'SKILL.md')))) {
-          err(`marketplace.json: ${s} missing or no SKILL.md`);
+        const rel = s.replace(/^\.\//, '');
+        const underPlugin = path.join(pluginRoot, rel);
+        const underRepo = path.join(ROOT, rel);
+        if (!(await exists(path.join(underPlugin, 'SKILL.md')))
+          && !(await exists(path.join(underRepo, 'SKILL.md')))) {
+          err(`marketplace.json: ${p.name} skill ${s} missing or no SKILL.md`);
         }
       }
     }
     for (const dir of localDirs) {
-      const key = `./${dir}`;
-      if (!declared.has(key)) err(`${key} not in marketplace.json (will show as Other)`);
+      if (dir.startsWith('skills/')) {
+        err(`${dir} still under skills/; move it into plugins/<name>/skills/`);
+        continue;
+      }
+      const plugin = pluginOfRelPath(dir);
+      if (!plugin) err(`${dir} is not under plugins/<name>/skills/`);
+      else if (!names.has(plugin)) err(`${dir}: plugin ${plugin} is not in marketplace.json`);
     }
   });
 
@@ -932,7 +1016,7 @@ export async function compareWithUpstream(dep) {
   if (!ref) throw new Error(`${dep.source.repo}: missing branch/tag/release`);
 
   const name = localNameOf(dep);
-  const localDir = path.join(SKILLS_ROOT, name);
+  const localDir = depLocalDir(dep);
   const localFiles = await walkLocal(localDir).catch(() => null);
   if (localFiles === null) return { missing: true, localName: name };
 
@@ -987,7 +1071,7 @@ async function syncToLocal(r, dep, { quiet = false } = {}) {
   const [owner, repo] = dep.source.repo.split('/');
   const ref = dep.source.branch || dep.source.tag || dep.source.release;
   const prefix = dep.source.path === '.' ? '' : `${dep.source.path}/`;
-  const localDir = path.join(SKILLS_ROOT, r.localName);
+  const localDir = depLocalDir(dep);
   const files = [...r.remoteOnly, ...r.changedFiles];
   for (const f of files) {
     const content = await fetchRaw(owner, repo, ref, prefix + f);
@@ -1020,13 +1104,15 @@ async function reinstallFromDep(dep, { quiet = false } = {}) {
   if (files.length === 0) throw new Error(`${name}: no files under ${root} in ${owner}/${repo}@${ref}`);
 
   const sha = await resolveCommitSha(owner, repo, ref);
+  const dest = depLocalDir(dep);
+  await mkdir(path.dirname(dest), { recursive: true });
   await downloadSkill({
     owner,
     repo,
     ref,
     files,
     root,
-    dest: path.join(SKILLS_ROOT, name),
+    dest,
   });
   dep.resolved = makeResolved(sha);
   const msg = `${name}: reinstalled ${files.length} file(s) from ${owner}/${repo}@${ref}#${shortSha(sha)}`;
@@ -1184,7 +1270,7 @@ async function manageCollected() {
 
   // Union of registered deps (even when missing on disk) + local-only skills
   const depByDir = new Map();
-  for (const d of entries) depByDir.set(`skills/${localNameOf(d)}`, d);
+  for (const d of entries) depByDir.set(relPosix(depLocalDir(d)), d);
   const dirs = [...new Set([...localDirs, ...depByDir.keys()])].sort();
   if (dirs.length === 0) {
     log.info('No skills yet. Use "Add skill" first.');
@@ -1225,7 +1311,7 @@ async function manageCollected() {
         },
       );
       for (const { dep, status, r, error } of items) {
-        const item = byDir.get(`skills/${localNameOf(dep)}`);
+        const item = byDir.get(relPosix(depLocalDir(dep)));
         if (!item) continue;
         item.status = status;
         item.r = r;
@@ -1390,8 +1476,15 @@ async function manageCollected() {
     try {
       await withSpinner('Moving…', async () => {
         const mkt = await readJson(MKT_FILE);
+        await mkdir(pluginSkillsDir(groupName), { recursive: true });
         for (const name of picked) {
           const item = byName.get(name);
+          const dest = destFor(groupName, item.name);
+          const src = path.join(ROOT, item.dir);
+          if (path.resolve(src) !== path.resolve(dest)) {
+            if (await exists(dest)) throw new Error(`Already exists: ${relPosix(dest)}`);
+            await rename(src, dest);
+          }
           moveInMarketplace(mkt, `./${item.dir}`, groupName);
           if (item.dep) item.dep.target.plugin = groupName;
         }
@@ -1425,7 +1518,7 @@ async function manageCollected() {
         await rm(path.join(ROOT, item.dir), { recursive: true, force: true });
         removeFromMarketplace(mkt, `./${item.dir}`);
       }
-      deps.dependencies = deps.dependencies.filter((x) => !pickedDirs.has(`skills/${localNameOf(x)}`));
+      deps.dependencies = deps.dependencies.filter((x) => !pickedDirs.has(relPosix(depLocalDir(x))));
       await writeJson(DEPS_FILE, deps);
       await writeJson(MKT_FILE, mkt);
     }, `Removed ${picked.length} skill(s)`);

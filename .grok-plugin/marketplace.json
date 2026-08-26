@@ -1,6 +1,6 @@
 {
   "name": "chengzi-skills",
-  "description": "Reusable Agent Skills. Install foundations at user scope; install golang or python at project scope.",
+  "description": "Reusable Agent Skills. Install foundations at user scope; install golang, python, or web at project scope.",
   "owner": {
     "name": "JoJoJotarou",
     "url": "https://github.com/chengzi-io/skills"
@@ -34,6 +34,16 @@
       "source": {
         "type": "local",
         "path": "./plugins/python"
+      }
+    },
+    {
+      "name": "web",
+      "description": "Web, React, and UI skills. Install at project scope in frontend repositories.",
+      "category": "engineering",
+      "version": "0.1.0",
+      "source": {
+        "type": "local",
+        "path": "./plugins/web"
       }
     }
   ]

@@ -1,7 +1,7 @@
 {
   "name": "chengzi-skills",
   "version": "0.1.0",
-  "description": "Marketplace of reusable Agent Skills. Install foundations at user scope; install golang or python at project scope.",
+  "description": "Marketplace of reusable Agent Skills. Install foundations at user scope; install golang, python, or web at project scope.",
   "author": {
     "name": "JoJoJotarou",
     "url": "https://github.com/chengzi-io/skills"

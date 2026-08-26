@@ -10,7 +10,7 @@
         "branch": "main"
       },
       "target": {
-        "plugin": "foundations",
+        "plugin": "web",
         "name": "emil-design-eng"
       },
       "resolved": {
@@ -26,7 +26,7 @@
         "branch": "main"
       },
       "target": {
-        "plugin": "foundations",
+        "plugin": "web",
         "name": "prototype"
       },
       "resolved": {
@@ -58,7 +58,7 @@
         "branch": "main"
       },
       "target": {
-        "plugin": "foundations",
+        "plugin": "web",
         "name": "frontend-design"
       },
       "resolved": {
@@ -74,7 +74,7 @@
         "branch": "main"
       },
       "target": {
-        "plugin": "foundations",
+        "plugin": "web",
         "name": "web-design-guidelines"
       },
       "resolved": {
@@ -90,7 +90,7 @@
         "branch": "main"
       },
       "target": {
-        "plugin": "foundations",
+        "plugin": "web",
         "name": "vercel-react-best-practices"
       },
       "resolved": {
@@ -106,7 +106,7 @@
         "branch": "main"
       },
       "target": {
-        "plugin": "foundations",
+        "plugin": "web",
         "name": "vercel-composition-patterns"
       },
       "resolved": {
@@ -122,7 +122,7 @@
         "branch": "main"
       },
       "target": {
-        "plugin": "foundations",
+        "plugin": "web",
         "name": "shadcn"
       },
       "resolved": {
