@@ -819,22 +819,19 @@ export async function collectSkillRows() {
   return rows;
 }
 
-/** Markdown table for README (Skill / Plugin / Source / Synced / Description). */
+/** Markdown table for README (Skill / Plugin / Description). */
 export function renderSkillsTable(rows) {
-  const header = '| Skill | Plugin | Source | Synced | Description |';
-  const sep = '|-------|--------|--------|--------|-------------|';
+  const header = '| Skill | Plugin | Description |';
+  const sep = '|-------|--------|-------------|';
   if (rows.length === 0) {
-    return [header, sep, '| _(none)_ | | | | |'].join('\n');
+    return [header, sep, '| _(none)_ | | |'].join('\n');
   }
 
   const body = rows.map((r) => {
     const skill = r.local === 'no'
       ? `\`${r.name}\` ⚠️ missing`
       : `[\`${r.name}\`](${r.path})`;
-    const synced = r.syncedAt
-      ? r.syncedAt.slice(0, 10)
-      : (r.source === 'local' ? '—' : 'unknown');
-    return `| ${mdCell(skill)} | ${mdCell(r.plugin)} | ${mdCell(r.source)} | ${mdCell(synced)} | ${mdCell(r.description)} |`;
+    return `| ${mdCell(skill)} | ${mdCell(r.plugin)} | ${mdCell(r.description)} |`;
   });
   return [header, sep, ...body].join('\n');
 }
