@@ -77,13 +77,13 @@ Each third-party entry tracks:
 |---------|-----------|
 | `pnpm manage` → Add / Sync / Rename / Change plugin / Remove | Manager rewrites the table before finishing (fails if markers missing) |
 | `pnpm sync` (local + CI) | Always rewrites after pin/file updates |
-| CI workflow | Extra `npm run readme` step; PR includes `plugins/**` + `README.md` + `dependencies.json` |
+| CI workflow | Extra `npm run readme` step; commits `plugins/**` + `README.md` + `dependencies.json` to the default branch |
 | `pnpm validate` | Fails if the table is stale (`pnpm readme -- --check`) |
 | `pnpm readme` | Manual regenerate |
 
 **Not automatic:** hand-adding a local skill under `plugins/<name>/skills/`, or editing `SKILL.md` / `dependencies.json` outside the manager — run `pnpm readme` (or rely on `pnpm validate` before commit). Plugin membership is the directory, not marketplace `skills[]`.
 
-CI (`.github/workflows/sync-skills.yml`): Monday 06:00 UTC + manual dispatch; opens a PR when skill files, pins, or the README table change.
+CI (`.github/workflows/sync-skills.yml`): Monday 06:00 UTC + manual dispatch. When skill files, pins, or the README table change, it commits straight to the default branch (no pull request).
 
 ## Layout
 
