@@ -1,0 +1,17 @@
+{
+  "name": "golang",
+  "version": "0.1.0",
+  "description": "Go engineering skills. Install at project scope in Go repositories.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Chengzi Golang",
+    "shortDescription": "Go engineering skills",
+    "developerName": "JoJoJotarou",
+    "category": "Engineering"
+  }
+}

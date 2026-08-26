@@ -1,93 +1,55 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "chengzi-skills",
-  "description": "A collection of reusable Agent Skills for development workflows, productivity, and quality engineering.",
+  "description": "Reusable Agent Skills. Install foundations at user scope; install golang or python at project scope.",
   "owner": {
     "name": "JoJoJotarou",
     "url": "https://github.com/chengzi-io/skills"
   },
   "plugins": [
     {
-      "name": "writing",
-      "description": "Requirements, BDD, ADRs, and OpenAPI specification authoring.",
-      "source": "./",
+      "name": "foundations",
+      "description": "Language-agnostic skills: requirements, TDD, architecture, and decision workflows. Install at user scope for every project.",
+      "source": "./plugins/foundations",
       "category": "productivity",
+      "version": "0.1.0",
       "skills": [
         "./skills/writing/write-adr",
         "./skills/writing/write-bdd",
         "./skills/writing/write-ears",
-        "./skills/writing-openapi-specs"
-      ]
-    },
-    {
-      "name": "design",
-      "description": "Visual direction, multi-variant prototyping, motion craft, and UI quality audits.",
-      "source": "./",
-      "category": "design",
-      "skills": [
+        "./skills/writing-openapi-specs",
         "./skills/frontend-design",
         "./skills/prototype",
         "./skills/emil-design-eng",
-        "./skills/web-design-guidelines"
-      ]
-    },
-    {
-      "name": "frontend",
-      "description": "React/Next.js performance, composition patterns, and shadcn/ui component workflows.",
-      "source": "./",
-      "category": "engineering",
-      "skills": [
+        "./skills/web-design-guidelines",
         "./skills/vercel-react-best-practices",
         "./skills/vercel-composition-patterns",
-        "./skills/shadcn"
-      ]
-    },
-    {
-      "name": "architecture",
-      "description": "Structure, packaging, and decision stress-testing.",
-      "source": "./",
-      "category": "engineering",
-      "skills": [
+        "./skills/shadcn",
         "./skills/repo-layout",
         "./skills/grilling",
         "./skills/domain-modeling",
         "./skills/grill-with-docs",
-        "./skills/improve-codebase-architecture"
+        "./skills/improve-codebase-architecture",
+        "./skills/tdd",
+        "./skills/eli5"
       ]
     },
     {
       "name": "golang",
-      "description": "Go engineering: HTTP codegen, API wiring, and server tooling.",
-      "source": "./",
+      "description": "Go engineering skills. Install at project scope in Go repositories.",
+      "source": "./plugins/golang",
       "category": "engineering",
+      "version": "0.1.0",
       "skills": [
         "./skills/golang/oapi-codegen-best-practices"
       ]
     },
     {
-      "name": "meta",
-      "description": "Author and maintain Agent Skills themselves.",
-      "source": "./",
-      "category": "productivity",
-      "skills": [
-        "./skills/write-skill"
-      ]
-    },
-    {
-      "name": "development",
-      "description": "development skills",
-      "source": "./",
-      "skills": [
-        "./skills/tdd"
-      ]
-    },
-    {
-      "name": "teaching",
-      "description": "teaching skills",
-      "source": "./",
-      "skills": [
-        "./skills/eli5"
-      ]
+      "name": "python",
+      "description": "Python engineering skills. Install at project scope in Python repositories.",
+      "source": "./plugins/python",
+      "category": "engineering",
+      "version": "0.1.0"
     }
   ]
 }

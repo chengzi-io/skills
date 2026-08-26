@@ -1,0 +1,40 @@
+{
+  "name": "chengzi-skills",
+  "description": "Reusable Agent Skills. Install foundations at user scope; install golang or python at project scope.",
+  "owner": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "plugins": [
+    {
+      "name": "foundations",
+      "description": "Language-agnostic skills: requirements, TDD, architecture, and decision workflows. Install at user scope for every project.",
+      "category": "productivity",
+      "version": "0.1.0",
+      "source": {
+        "type": "local",
+        "path": "./plugins/foundations"
+      }
+    },
+    {
+      "name": "golang",
+      "description": "Go engineering skills. Install at project scope in Go repositories.",
+      "category": "engineering",
+      "version": "0.1.0",
+      "source": {
+        "type": "local",
+        "path": "./plugins/golang"
+      }
+    },
+    {
+      "name": "python",
+      "description": "Python engineering skills. Install at project scope in Python repositories.",
+      "category": "engineering",
+      "version": "0.1.0",
+      "source": {
+        "type": "local",
+        "path": "./plugins/python"
+      }
+    }
+  ]
+}

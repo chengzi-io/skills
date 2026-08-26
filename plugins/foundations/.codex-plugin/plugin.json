@@ -1,0 +1,17 @@
+{
+  "name": "foundations",
+  "version": "0.1.0",
+  "description": "Language-agnostic skills: requirements, TDD, architecture, and decision workflows. Install at user scope for every project.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Chengzi Foundations",
+    "shortDescription": "Language-agnostic skills for every project",
+    "developerName": "JoJoJotarou",
+    "category": "Productivity"
+  }
+}

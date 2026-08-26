@@ -382,7 +382,12 @@ async function loadGroups() {
 function ensurePlugin(mkt, groupName) {
   let plugin = mkt.plugins.find((p) => p.name === groupName);
   if (!plugin) {
-    plugin = { name: groupName, description: `${groupName} skills`, source: './', skills: [] };
+    plugin = {
+      name: groupName,
+      description: `${groupName} skills`,
+      source: `./plugins/${groupName}`,
+      skills: [],
+    };
     mkt.plugins.push(plugin);
   }
   plugin.skills = plugin.skills || [];

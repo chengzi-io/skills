@@ -1,0 +1,10 @@
+{
+  "name": "python",
+  "version": "0.1.0",
+  "description": "Python engineering skills. Install at project scope in Python repositories.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT"
+}

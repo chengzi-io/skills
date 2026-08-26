@@ -1,15 +1,10 @@
 {
   "name": "chengzi-skills",
   "version": "0.1.0",
-  "description": "Reusable Agent Skills covering development workflows, decision-making, and quality engineering.",
+  "description": "Marketplace of reusable Agent Skills. Install foundations at user scope; install golang or python at project scope.",
   "author": {
     "name": "JoJoJotarou",
     "url": "https://github.com/chengzi-io/skills"
   },
-  "license": "MIT",
-  "skills": [
-    "./skills/writing/write-adr",
-    "./skills/writing/write-bdd",
-    "./skills/writing/write-ears"
-  ]
+  "license": "MIT"
 }

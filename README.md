@@ -16,25 +16,25 @@ Auto-generated from local `SKILL.md` + `dependencies.json` + `marketplace.json`.
 
 | Skill | Plugin | Source | Synced | Description |
 |-------|--------|--------|--------|-------------|
-| [`write-adr`](skills/writing/write-adr) | writing | local | — | Draft, review, or slim Architecture Decision Records (ADRs). Trigger on ADR, architecture decision, … |
-| [`write-bdd`](skills/writing/write-bdd) | writing | local | — | Write, review, and implement BDD Gherkin .feature files and step definitions. Use when the user asks… |
-| [`write-ears`](skills/writing/write-ears) | writing | local | — | Write and review EARS functional requirements and acceptance criteria. Use when the user asks to wri… |
-| [`writing-openapi-specs`](skills/writing-openapi-specs) | writing | speakeasy-api/skills@master#d2eab59 | 2026-08-10 | Reference guide for OpenAPI specification best practices, naming conventions, and expressing complex… |
-| [`emil-design-eng`](skills/emil-design-eng) | design | emilkowalski/skills@main#9075d17 | 2026-08-10 | This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, a… |
-| [`frontend-design`](skills/frontend-design) | design | anthropics/skills@main#f17010c | 2026-08-10 | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing on… |
-| [`prototype`](skills/prototype) | design | emilkowalski/skills@main#9075d17 | 2026-08-10 | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual pic… |
-| [`web-design-guidelines`](skills/web-design-guidelines) | design | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check acc… |
-| [`shadcn`](skills/shadcn) | frontend | shadcn/ui@main#deda4df | 2026-08-10 | Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composin… |
-| [`vercel-composition-patterns`](skills/vercel-composition-patterns) | frontend | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React composition patterns that scale. Use when refactoring components with boolean prop proliferati… |
-| [`vercel-react-best-practices`](skills/vercel-react-best-practices) | frontend | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be … |
-| [`domain-modeling`](skills/domain-modeling) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-14 | Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or edi… |
-| [`grill-with-docs`](skills/grill-with-docs) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-14 | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as … |
-| [`grilling`](skills/grilling) | architecture | local | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
-| [`improve-codebase-architecture`](skills/improve-codebase-architecture) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-15 | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill throug… |
-| [`repo-layout`](skills/repo-layout) | architecture | local | — | Place, evolve, and review repository directory structure so paths name business slices instead of te… |
+| [`domain-modeling`](skills/domain-modeling) | foundations | mattpocock/skills@main#8b78b53 | 2026-08-14 | Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or edi… |
+| [`eli5`](skills/eli5) | foundations | anthropics/claude-plugins-community@main#f4c9452 | 2026-08-23 | Explain a topic like I'm a 5 year old. Use when the user types /eli5 <topic> or asks for a dead-simp… |
+| [`emil-design-eng`](skills/emil-design-eng) | foundations | emilkowalski/skills@main#9075d17 | 2026-08-10 | This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, a… |
+| [`frontend-design`](skills/frontend-design) | foundations | anthropics/skills@main#f17010c | 2026-08-10 | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing on… |
+| [`grill-with-docs`](skills/grill-with-docs) | foundations | mattpocock/skills@main#8b78b53 | 2026-08-14 | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as … |
+| [`grilling`](skills/grilling) | foundations | local | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
+| [`improve-codebase-architecture`](skills/improve-codebase-architecture) | foundations | mattpocock/skills@main#8b78b53 | 2026-08-15 | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill throug… |
+| [`prototype`](skills/prototype) | foundations | emilkowalski/skills@main#9075d17 | 2026-08-10 | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual pic… |
+| [`repo-layout`](skills/repo-layout) | foundations | local | — | Decide, create, move, rename, refactor, and inspect repository paths so the tree expresses business … |
+| [`shadcn`](skills/shadcn) | foundations | shadcn/ui@main#deda4df | 2026-08-10 | Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composin… |
+| [`tdd`](skills/tdd) | foundations | mattpocock/skills@main#8b78b53 | 2026-08-14 | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions … |
+| [`vercel-composition-patterns`](skills/vercel-composition-patterns) | foundations | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React composition patterns that scale. Use when refactoring components with boolean prop proliferati… |
+| [`vercel-react-best-practices`](skills/vercel-react-best-practices) | foundations | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be … |
+| [`web-design-guidelines`](skills/web-design-guidelines) | foundations | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check acc… |
+| [`write-adr`](skills/writing/write-adr) | foundations | local | — | Draft, review, or slim Architecture Decision Records (ADRs). Trigger on ADR, architecture decision, … |
+| [`write-bdd`](skills/writing/write-bdd) | foundations | local | — | Write, review, and implement BDD Gherkin .feature files and step definitions. Use when the user asks… |
+| [`write-ears`](skills/writing/write-ears) | foundations | local | — | Write and review EARS functional requirements and acceptance criteria. Use when the user asks to wri… |
+| [`writing-openapi-specs`](skills/writing-openapi-specs) | foundations | speakeasy-api/skills@master#d2eab59 | 2026-08-10 | Reference guide for OpenAPI specification best practices, naming conventions, and expressing complex… |
 | [`oapi-codegen-best-practices`](skills/golang/oapi-codegen-best-practices) | golang | local | — | Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server… |
-| [`tdd`](skills/tdd) | development | mattpocock/skills@main#8b78b53 | 2026-08-14 | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions … |
-| [`eli5`](skills/eli5) | teaching | anthropics/claude-plugins-community@main#f4c9452 | 2026-08-23 | Explain a topic like I'm a 5 year old. Use when the user types /eli5 <topic> or asks for a dead-simp… |
 
 <!-- skills:table:end -->
 
@@ -82,6 +82,9 @@ CI (`.github/workflows/sync-skills.yml`): Monday 06:00 UTC + manual dispatch; op
 | Path | Role |
 |------|------|
 | `skills/` | Skill packages (`SKILL.md` + assets) |
-| `.claude-plugin/marketplace.json` | Plugin groups and skill paths |
+| `plugins/foundations`, `plugins/golang`, `plugins/python` | Physical plugins each CLI installs |
+| `.claude-plugin/marketplace.json` | Claude Code catalog + skill-to-plugin map |
+| `.grok-plugin/marketplace.json` | Grok catalog |
+| `.agents/plugins/marketplace.json` | Codex catalog |
 | `dependencies.json` | Upstream sources for third-party skills |
 | `scripts/manage.mjs` | Manager, CI sync, README table |
