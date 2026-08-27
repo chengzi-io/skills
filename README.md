@@ -27,14 +27,14 @@ Auto-generated from local `SKILL.md` + `dependencies.json` + `marketplace.json`.
 | [`shadcn`](skills/shadcn) | frontend | shadcn/ui@main#deda4df | 2026-08-10 | Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composin… |
 | [`vercel-composition-patterns`](skills/vercel-composition-patterns) | frontend | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React composition patterns that scale. Use when refactoring components with boolean prop proliferati… |
 | [`vercel-react-best-practices`](skills/vercel-react-best-practices) | frontend | vercel-labs/agent-skills@main#7c180d9 | 2026-08-10 | React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be … |
-| [`domain-modeling`](skills/domain-modeling) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-14 | Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or edi… |
-| [`grill-with-docs`](skills/grill-with-docs) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-14 | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as … |
+| [`domain-modeling`](skills/domain-modeling) | architecture | mattpocock/skills@main#6654f6b | 2026-08-27 | Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or edi… |
+| [`grill-with-docs`](skills/grill-with-docs) | architecture | mattpocock/skills@main#6654f6b | 2026-08-27 | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as … |
 | [`grilling`](skills/grilling) | architecture | local | — | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
-| [`improve-codebase-architecture`](skills/improve-codebase-architecture) | architecture | mattpocock/skills@main#8b78b53 | 2026-08-15 | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill throug… |
+| [`improve-codebase-architecture`](skills/improve-codebase-architecture) | architecture | mattpocock/skills@main#6654f6b | 2026-08-27 | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill throug… |
 | [`repo-layout`](skills/repo-layout) | architecture | local | — | Lay out a repository so directory hierarchy, directory names, and file names express product capabil… |
 | [`oapi-codegen-best-practices`](skills/golang/oapi-codegen-best-practices) | golang | local | — | Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server… |
 | [`write-skill`](skills/write-skill) | meta | local | — | Creates or updates Agent Skills following the current agentskills.io specification and guidance. Use… |
-| [`tdd`](skills/tdd) | development | mattpocock/skills@main#8b78b53 | 2026-08-14 | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions … |
+| [`tdd`](skills/tdd) | development | mattpocock/skills@main#6654f6b | 2026-08-27 | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions … |
 | [`eli5`](skills/eli5) | teaching | anthropics/claude-plugins-community@main#f4c9452 | 2026-08-23 | Explain a topic like I'm a 5 year old. Use when the user types /eli5 <topic> or asks for a dead-simp… |
 
 <!-- skills:table:end -->

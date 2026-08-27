@@ -138,8 +138,8 @@
         "branch": "main"
       },
       "resolved": {
-        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
-        "syncedAt": "2026-08-14T15:28:49.814Z"
+        "sha": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+        "syncedAt": "2026-08-27T05:03:08.769Z"
       },
       "target": {
         "plugin": "architecture",
@@ -154,8 +154,8 @@
         "branch": "main"
       },
       "resolved": {
-        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
-        "syncedAt": "2026-08-14T15:28:50.722Z"
+        "sha": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+        "syncedAt": "2026-08-27T05:03:08.769Z"
       },
       "target": {
         "plugin": "architecture",
@@ -170,8 +170,8 @@
         "branch": "main"
       },
       "resolved": {
-        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
-        "syncedAt": "2026-08-14T15:36:20.652Z"
+        "sha": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+        "syncedAt": "2026-08-27T05:03:08.770Z"
       },
       "target": {
         "plugin": "development",
@@ -186,8 +186,8 @@
         "branch": "main"
       },
       "resolved": {
-        "sha": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
-        "syncedAt": "2026-08-15T02:22:38.628Z"
+        "sha": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+        "syncedAt": "2026-08-27T05:03:08.771Z"
       },
       "target": {
         "plugin": "architecture",
