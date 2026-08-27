@@ -76,6 +76,7 @@ Auto-generated. Do not edit the table by hand. Source pins and sync dates: `pnpm
 | [`frontend-design`](plugins/web/skills/frontend-design) | web | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing on… |
 | [`prototype`](plugins/web/skills/prototype) | web | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual pic… |
 | [`shadcn`](plugins/web/skills/shadcn) | web | Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composin… |
+| [`transitions-dev`](plugins/web/skills/transitions-dev) | web | Production-ready CSS transitions for web apps. Use when implementing notification badges, dropdowns,… |
 | [`vercel-composition-patterns`](plugins/web/skills/vercel-composition-patterns) | web | React composition patterns that scale. Use when refactoring components with boolean prop proliferati… |
 | [`vercel-react-best-practices`](plugins/web/skills/vercel-react-best-practices) | web | React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be … |
 | [`web-design-guidelines`](plugins/web/skills/web-design-guidelines) | web | Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check acc… |

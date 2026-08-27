@@ -175,6 +175,24 @@
           }
         }
       ]
+    },
+    {
+      "repo": "Jakubantalik/transitions.dev",
+      "branch": "main",
+      "items": [
+        {
+          "type": "skill",
+          "path": "skills/transitions-dev",
+          "target": {
+            "plugin": "web",
+            "name": "transitions-dev"
+          }
+        }
+      ],
+      "resolved": {
+        "sha": "ef497bb64867ce569689730198fc66f49db56317",
+        "syncedAt": "2026-08-27T04:55:57.347Z"
+      }
     }
   ]
 }
