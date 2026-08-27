@@ -60,6 +60,7 @@ Auto-generated. Do not edit the table by hand. Source pins and sync dates: `pnpm
 
 | Skill | Plugin | Description |
 |-------|--------|-------------|
+| [`caveman`](plugins/foundations/skills/caveman) | foundations | Ultra-compressed communication mode. Cuts output tokens 65% (measured) by speaking like caveman whil… |
 | [`domain-modeling`](plugins/foundations/skills/domain-modeling) | foundations | Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or edi… |
 | [`eli5`](plugins/foundations/skills/eli5) | foundations | Explain a topic like I'm a 5 year old. Use when the user types /eli5 <topic> or asks for a dead-simp… |
 | [`grill-with-docs`](plugins/foundations/skills/grill-with-docs) | foundations | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as … |

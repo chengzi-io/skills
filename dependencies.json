@@ -193,6 +193,24 @@
         "sha": "ef497bb64867ce569689730198fc66f49db56317",
         "syncedAt": "2026-08-27T04:55:57.347Z"
       }
+    },
+    {
+      "repo": "JuliusBrussee/caveman",
+      "branch": "main",
+      "items": [
+        {
+          "type": "skill",
+          "path": "skills/caveman",
+          "target": {
+            "plugin": "foundations",
+            "name": "caveman"
+          }
+        }
+      ],
+      "resolved": {
+        "sha": "81536f57b3303b7de7f5bc5b564cc344f9112d68",
+        "syncedAt": "2026-08-27T05:17:53.719Z"
+      }
     }
   ]
 }
