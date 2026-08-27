@@ -11,45 +11,76 @@
     },
     "version": {
       "type": "integer",
-      "const": 1
+      "const": 2
     },
-    "dependencies": {
+    "sources": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/dependency"
+        "$ref": "#/$defs/source"
       }
     }
   },
   "$defs": {
-    "dependency": {
+    "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "source", "target"],
+      "required": ["repo", "items"],
+      "description": "One upstream repo at a single ref (branch/tag/release); all items under it share one resolved pin.",
+      "properties": {
+        "repo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+\\/[A-Za-z0-9_.-]+$"
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1
+        },
+        "release": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resolved": {
+          "$ref": "#/$defs/resolved"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/item"
+          }
+        }
+      },
+      "oneOf": [
+        { "required": ["branch"] },
+        { "required": ["tag"] },
+        { "required": ["release"] },
+        {
+          "not": {
+            "anyOf": [
+              { "required": ["branch"] },
+              { "required": ["tag"] },
+              { "required": ["release"] }
+            ]
+          }
+        }
+      ]
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "path", "target"],
       "properties": {
         "type": {
           "type": "string",
           "enum": ["skill", "agent"]
         },
-        "source": {
-          "$ref": "#/$defs/source"
-        },
-        "resolved": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["sha", "syncedAt"],
-          "description": "Pinned commit actually present on disk after last successful install/sync.",
-          "properties": {
-            "sha": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{40}$",
-              "description": "Full Git commit SHA of the upstream ref when content was written to disk."
-            },
-            "syncedAt": {
-              "type": "string",
-              "minLength": 1,
-              "description": "ISO-8601 timestamp of the last successful install/sync that produced this SHA."
-            }
-          }
+        "path": {
+          "type": "string",
+          "minLength": 1
         },
         "target": {
           "$ref": "#/$defs/target"
@@ -63,14 +94,9 @@
           },
           "then": {
             "properties": {
-              "source": {
-                "type": "object",
-                "properties": {
-                  "path": {
-                    "type": "string",
-                    "pattern": "^.+(?:\\/SKILL\\.md)?$"
-                  }
-                }
+              "path": {
+                "type": "string",
+                "pattern": "^.+(?:\\/SKILL\\.md)?$"
               }
             }
           }
@@ -82,75 +108,32 @@
           },
           "then": {
             "properties": {
-              "source": {
-                "type": "object",
-                "properties": {
-                  "path": {
-                    "type": "string",
-                    "pattern": "^.+\\.md$"
-                  }
-                }
+              "path": {
+                "type": "string",
+                "pattern": "^.+\\.md$"
               }
             }
           }
         }
       ]
     },
-    "source": {
+    "resolved": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repo", "path"],
+      "required": ["sha", "syncedAt"],
+      "description": "Pinned commit actually present on disk after last successful install/sync.",
       "properties": {
-        "repo": {
+        "sha": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9_.-]+\\/[A-Za-z0-9_.-]+$"
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "Full Git commit SHA of the upstream ref when content was written to disk."
         },
-        "path": {
+        "syncedAt": {
           "type": "string",
-          "minLength": 1
-        },
-        "branch": {
-          "type": "string",
-          "minLength": 1
-        },
-        "tag": {
-          "type": "string",
-          "minLength": 1
-        },
-        "release": {
-          "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "ISO-8601 timestamp of the last successful install/sync that produced this SHA."
         }
-      },
-      "oneOf": [
-        {
-          "properties": {
-            "branch": { "type": "string", "minLength": 1 }
-          },
-          "required": ["branch"]
-        },
-        {
-          "properties": {
-            "tag": { "type": "string", "minLength": 1 }
-          },
-          "required": ["tag"]
-        },
-        {
-          "properties": {
-            "release": { "type": "string", "minLength": 1 }
-          },
-          "required": ["release"]
-        },
-        {
-          "not": {
-            "anyOf": [
-              { "required": ["branch"] },
-              { "required": ["tag"] },
-              { "required": ["release"] }
-            ]
-          }
-        }
-      ]
+      }
     },
     "target": {
       "type": "object",

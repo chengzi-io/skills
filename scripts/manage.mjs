@@ -471,15 +471,67 @@ async function downloadSkill({ owner, repo, ref, files, root, dest }) {
   }
 }
 
+/** Source-block identity: repo + single ref (v2 groups deps by repo@ref). */
+const sourceSig = (o) => JSON.stringify([o.repo, o.branch ?? null, o.tag ?? null, o.release ?? null]);
+
+/**
+ * Flatten v2 sources[] into internal dep entries ({type, source, resolved, target}).
+ * `resolved` and `target` are read/write delegates onto the underlying source
+ * block / item, so mutations on flattened entries persist via writeJson(DEPS_FILE).
+ */
+export function flattenDeps(deps) {
+  const out = [];
+  for (const src of deps?.sources ?? []) {
+    for (const item of src.items ?? []) {
+      const source = { repo: src.repo, path: item.path };
+      for (const k of ['branch', 'tag', 'release']) if (src[k]) source[k] = src[k];
+      const dep = { type: item.type, source };
+      Object.defineProperty(dep, 'resolved', {
+        enumerable: true,
+        get: () => src.resolved,
+        set: (v) => { src.resolved = v; },
+      });
+      Object.defineProperty(dep, 'target', {
+        enumerable: true,
+        get: () => item.target,
+        set: (v) => { item.target = v; },
+      });
+      out.push(dep);
+    }
+  }
+  return out;
+}
+
+/** Drop dependency items whose local dir matches pickedDirs; drop sources left empty. */
+function removeDependencyDirs(deps, pickedDirs) {
+  let removed = false;
+  for (const src of deps?.sources ?? []) {
+    src.items = (src.items ?? []).filter((item) => {
+      if (!pickedDirs.has(relPosix(depLocalDir({ type: item.type, source: { path: item.path }, target: item.target })))) return true;
+      removed = true;
+      return false;
+    });
+  }
+  deps.sources = (deps.sources ?? []).filter((s) => (s.items ?? []).length > 0);
+  return removed;
+}
+
 function upsertDependency(deps, entry) {
-  const i = deps.dependencies.findIndex(
-    (d) => d.source?.repo === entry.source.repo && d.source?.path === entry.source.path,
-  );
+  deps.sources ??= [];
+  let src = deps.sources.find((s) => sourceSig(s) === sourceSig(entry.source));
+  if (!src) {
+    src = { repo: entry.source.repo };
+    for (const k of ['branch', 'tag', 'release']) if (entry.source[k]) src[k] = entry.source[k];
+    src.items = [];
+    deps.sources.push(src);
+  }
+  if (entry.resolved) src.resolved = entry.resolved;
+  const i = src.items.findIndex((it) => it.path === entry.source.path);
   if (i >= 0) {
-    deps.dependencies[i] = entry;
+    src.items[i] = { type: entry.type, path: entry.source.path, target: entry.target };
     return false;
   }
-  deps.dependencies.push(entry);
+  src.items.push({ type: entry.type, path: entry.source.path, target: entry.target });
   return true;
 }
 
@@ -502,11 +554,11 @@ function removeFromMarketplace(mkt, relPath) {
 async function knownRepos() {
   const deps = await readJson(DEPS_FILE);
   const byRepo = new Map();
-  for (const d of deps.dependencies || []) {
-    if (!d.source?.repo) continue;
-    if (!byRepo.has(d.source.repo)) byRepo.set(d.source.repo, new Set());
-    const ref = d.source.branch || d.source.tag || d.source.release;
-    if (ref) byRepo.get(d.source.repo).add(ref);
+  for (const s of deps.sources || []) {
+    if (!s.repo) continue;
+    if (!byRepo.has(s.repo)) byRepo.set(s.repo, new Set());
+    const ref = s.branch || s.tag || s.release;
+    if (ref) byRepo.get(s.repo).add(ref);
   }
   return byRepo;
 }
@@ -771,7 +823,7 @@ export async function collectSkillRows() {
   const pluginOf = await skillToPlugin();
 
   const depByPath = new Map();
-  for (const d of deps.dependencies || []) {
+  for (const d of flattenDeps(deps)) {
     depByPath.set(relPosix(depLocalDir(d)), d);
   }
 
@@ -919,29 +971,41 @@ async function validateAll() {
 
   await section('dependencies.json ok', async () => {
     const deps = await readJson(DEPS_FILE);
-    if (deps.version !== 1) err('dependencies.json: version must be 1');
-    if (!Array.isArray(deps.dependencies)) err('dependencies.json: dependencies must be an array');
-    for (const d of deps.dependencies ?? []) {
-      if (!['skill', 'agent'].includes(d.type)) err(`Bad type: ${JSON.stringify(d)}`);
-      if (!d.source?.repo || !d.source?.path) err(`Missing source.repo/path: ${JSON.stringify(d)}`);
-      if (!d.target?.plugin) err(`Missing target.plugin: ${JSON.stringify(d)}`);
-      const name = localNameOf(d);
-      const expected = relPosix(depLocalDir(d));
-      const actual = localDirs.find((dir) => dir.split('/').pop() === name);
-      if (actual && actual !== expected) {
-        err(`${name}: on disk at ${actual}, dependencies.json target.plugin is ${d.target.plugin}`);
+    if (deps.version !== 2) err('dependencies.json: version must be 2');
+    if (!Array.isArray(deps.sources)) err('dependencies.json: sources must be an array');
+    const seenSources = new Set();
+    for (const s of deps.sources ?? []) {
+      if (!s.repo) { err(`Missing source.repo: ${JSON.stringify(s)}`); continue; }
+      const refs = ['branch', 'tag', 'release'].filter((k) => s[k]);
+      if (refs.length > 1) err(`${s.repo}: use only one of branch/tag/release`);
+      const sig = sourceSig(s);
+      if (seenSources.has(sig)) err(`${s.repo}: duplicate source block (${refs.join('/') || 'default ref'})`);
+      seenSources.add(sig);
+      if ((s.items ?? []).length === 0) err(`${s.repo}: source block has no items`);
+      if (!s.resolved?.sha) {
+        err(`${s.repo}: missing resolved.sha (run pnpm sync to pin)`);
+      } else if (!/^[0-9a-f]{40}$/.test(s.resolved.sha)) {
+        err(`${s.repo}: resolved.sha must be a 40-char hex commit`);
       }
-      const refs = ['branch', 'tag', 'release'].filter((k) => d.source?.[k]);
-      if (refs.length > 1) err(`${d.source?.repo}: use only one of branch/tag/release`);
-      if (!d.resolved?.sha) {
-        err(`${localNameOf(d)}: missing resolved.sha (run pnpm sync to pin)`);
-      } else if (!/^[0-9a-f]{40}$/.test(d.resolved.sha)) {
-        err(`${localNameOf(d)}: resolved.sha must be a 40-char hex commit`);
+      if (!s.resolved?.syncedAt) {
+        err(`${s.repo}: missing resolved.syncedAt`);
+      } else if (Number.isNaN(Date.parse(s.resolved.syncedAt))) {
+        err(`${s.repo}: resolved.syncedAt is not a valid date`);
       }
-      if (!d.resolved?.syncedAt) {
-        err(`${localNameOf(d)}: missing resolved.syncedAt`);
-      } else if (Number.isNaN(Date.parse(d.resolved.syncedAt))) {
-        err(`${localNameOf(d)}: resolved.syncedAt is not a valid date`);
+      const seenPaths = new Set();
+      for (const it of s.items ?? []) {
+        const label = `${s.repo}:${it.path}`;
+        if (!['skill', 'agent'].includes(it.type)) err(`Bad type on ${label}: ${JSON.stringify(it)}`);
+        if (!it.path) err(`Missing item.path under ${s.repo}: ${JSON.stringify(it)}`);
+        if (!it.target?.plugin) err(`Missing target.plugin on ${label}`);
+        if (seenPaths.has(it.path)) err(`${label}: duplicate item path in source block`);
+        seenPaths.add(it.path);
+        const name = localNameOf({ source: { path: it.path }, target: it.target });
+        const expected = relPosix(depLocalDir({ source: { path: it.path }, target: it.target }));
+        const actual = localDirs.find((dir) => dir.split('/').pop() === name);
+        if (actual && actual !== expected) {
+          err(`${name}: on disk at ${actual}, dependencies.json target.plugin is ${it.target?.plugin}`);
+        }
       }
     }
   });
@@ -1126,7 +1190,7 @@ async function reinstallFromDep(dep, { quiet = false } = {}) {
  */
 export async function syncAll({ checkOnly = false } = {}) {
   const deps = await readJson(DEPS_FILE);
-  const entries = deps.dependencies || [];
+  const entries = flattenDeps(deps);
   if (entries.length === 0) {
     console.log('No third-party skills in dependencies.json');
     return { ok: true, fresh: 0, synced: 0, missing: 0, errors: 0, details: [] };
@@ -1262,7 +1326,7 @@ export async function syncAll({ checkOnly = false } = {}) {
 
 async function manageCollected() {
   const deps = await readJson(DEPS_FILE);
-  const entries = deps.dependencies || [];
+  const entries = flattenDeps(deps);
   const localDirs = await findLocalSkills();
 
   // Union of registered deps (even when missing on disk) + local-only skills
@@ -1515,7 +1579,7 @@ async function manageCollected() {
         await rm(path.join(ROOT, item.dir), { recursive: true, force: true });
         removeFromMarketplace(mkt, `./${item.dir}`);
       }
-      deps.dependencies = deps.dependencies.filter((x) => !pickedDirs.has(relPosix(depLocalDir(x))));
+      removeDependencyDirs(deps, pickedDirs);
       await writeJson(DEPS_FILE, deps);
       await writeJson(MKT_FILE, mkt);
     }, `Removed ${picked.length} skill(s)`);
