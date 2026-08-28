@@ -102,10 +102,12 @@ test('renames and moves marketplace skill paths and escapes README cells', () =>
     plugin: 'web|ui',
     description: 'line one\nline | two',
     path: 'plugins/web/skills/demo',
+    repo: 'acme/tools',
     local: 'yes',
   }]);
   assert.match(table, /web\\\|ui/);
   assert.match(table, /line one line \\| two/);
+  assert.match(table, /\[acme\/tools\]\(https:\/\/github.com\/acme\/tools\)/);
 });
 
 function fakeRemote(tree, contents, { failPath } = {}) {

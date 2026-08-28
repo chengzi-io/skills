@@ -11,8 +11,8 @@ Usage:
   npm run manage                 Interactive menu
   npm run sync                   Sync all third-party skills from upstream
   npm run sync:check             Check only (exit 1 if outdated/missing)
-  npm run readme                 Regenerate skills table in README.md
-  npm run readme -- --check      Fail if README table is stale
+  npm run readme                 Regenerate plugins and skills tables in README.md
+  npm run readme -- --check      Fail if README tables are stale
   node scripts/manage.mjs validate
   node scripts/manage.mjs --list-repo <owner/repo>
   node scripts/manage.mjs sync --no-cache   bypass GitHub response cache
@@ -53,25 +53,29 @@ export async function runCli(argv = process.argv.slice(2)) {
   if (command === 'readme') {
     const checkOnly = rest.includes('--check');
     try {
-      const result = await updateReadmeSkillsTable({ checkOnly, quiet: checkOnly });
+      const result = await updateReadmeSkillsTable({ checkOnly, quiet: true });
       if (result.missingMarkers) {
-        console.error('README.md missing <!-- skills:table:start --> / <!-- skills:table:end --> markers');
+        const parts = [];
+        if (result.missingPluginMarkers) parts.push('<!-- plugins:table:start --> / <!-- plugins:table:end -->');
+        if (result.missingSkillMarkers) parts.push('<!-- skills:table:start --> / <!-- skills:table:end -->');
+        console.error(`README.md missing ${parts.join(' and ') || 'table'} markers`);
         process.exitCode = 1;
         return;
       }
+      const summary = `${result.pluginCount} plugin(s), ${result.count} skill(s)`;
       if (checkOnly) {
         if (result.changed) {
-          console.error(`README skills table is stale (${result.count} skill(s)) — run: pnpm readme`);
+          console.error(`README tables are stale (${summary}) — run: pnpm readme`);
           process.exitCode = 1;
         } else {
-          console.log(`README skills table ok (${result.count} skill(s))`);
+          console.log(`README tables ok (${summary})`);
         }
         return;
       }
       console.log(
         result.changed
-          ? `README skills table updated (${result.count} skill(s))`
-          : `README skills table already up to date (${result.count} skill(s))`,
+          ? `README tables updated (${summary})`
+          : `README tables already up to date (${summary})`,
       );
     } catch (error) {
       console.error(error.message);

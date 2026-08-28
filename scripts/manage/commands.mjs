@@ -596,6 +596,13 @@ export async function main() {
     check: checkUpstream,
     list: listCollected,
     validate: validateAll,
+    readme: async () => {
+      const result = await refreshReadme({ quiet: false });
+      if (!result.changed) {
+        log.info(`README tables already up to date (${result.pluginCount} plugin(s), ${result.count} skill(s))`);
+      }
+      return true;
+    },
   };
   while (true) {
     const action = await select({
@@ -606,6 +613,7 @@ export async function main() {
         { value: 'check', label: 'Check upstream for updates', hint: 'read-only status check' },
         { value: 'list', label: 'List skills', hint: 'all local + deps' },
         { value: 'validate', label: 'Check config', hint: 'deps / marketplace / frontmatter' },
+        { value: 'readme', label: 'Refresh README tables', hint: 'plugins + skills' },
         { value: 'exit', label: 'Exit' },
       ],
     });

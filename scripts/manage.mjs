@@ -84,15 +84,22 @@ export {
 } from './manage/sync.mjs';
 
 export {
+  collectPluginRows,
   collectSkillRows,
   formatSkillList,
+  githubOwnerRepo,
   mdCell,
   oneLine,
+  pluginScopeAndWhen,
+  sourceRepoLink,
   printSection,
   refreshReadme,
+  renderPluginsTable,
   renderSkillsTable,
+  replaceMarkedBlock,
   truncate,
   updateReadmeSkillsTable,
+  updateReadmeTables,
 } from './manage/readme.mjs';
 
 export { validateAll } from './manage/validate.mjs';

@@ -23,6 +23,21 @@ import {
 
 export const README_START = '<!-- skills:table:start -->';
 export const README_END = '<!-- skills:table:end -->';
+export const PLUGIN_START = '<!-- plugins:table:start -->';
+export const PLUGIN_END = '<!-- plugins:table:end -->';
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Replace a README marker pair. Does not write. */
+export function replaceMarkedBlock(source, start, end, inner) {
+  const block = `${start}\n\n${inner}\n\n${end}`;
+  if (!source.includes(start) || !source.includes(end)) {
+    return { next: source, missing: true, changed: false };
+  }
+  const expression = new RegExp(`${escapeRegExp(start)}[\\s\\S]*?${escapeRegExp(end)}`);
+  const next = source.replace(expression, () => block);
+  return { next, missing: false, changed: next !== source };
+}
 
 export const truncate = (value, length = 60) => {
   const string = String(value);
@@ -35,6 +50,20 @@ export const oneLine = (value, length = 100) => truncate(
 );
 
 export const mdCell = (value) => String(value ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+
+/** owner/repo from a GitHub URL or already-canonical repo slug. */
+export function githubOwnerRepo(urlOrRepo) {
+  const value = String(urlOrRepo || '').trim();
+  if (!value) return '';
+  if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(value)) return value.replace(/\.git$/, '');
+  const match = value.match(/github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?\/?$/i);
+  return match ? match[1] : '';
+}
+
+export function sourceRepoLink(repo) {
+  if (!repo) return '-';
+  return `[${repo}](https://github.com/${repo})`;
+}
 
 export function printSection(title, lines, logger = log) {
   logger.step(title);
@@ -84,7 +113,7 @@ export async function collectSkillRows({
   skillsRoot = path.join(root, 'skills'),
   pluginsRoot = path.join(root, 'plugins'),
 } = {}) {
-  const deps = await readJson(depsFile);
+  const [deps, marketplace] = await Promise.all([readJson(depsFile), readJson(mktFile)]);
   const localDirs = await findLocalSkills({ root, skillsRoot, pluginsRoot });
   const localSet = new Set(localDirs);
   const pluginOf = await skillToPlugin({
@@ -105,6 +134,7 @@ export async function collectSkillRows({
     const dependency = depByPath.get(skillPath);
     const source = dependency ? formatSourceLabel(dependency) : 'local';
     const syncedAt = dependency?.resolved?.syncedAt || '';
+    const repo = githubOwnerRepo(dependency?.source?.repo);
     let description = '';
     if (localSet.has(skillPath)) {
       try {
@@ -118,14 +148,13 @@ export async function collectSkillRows({
       name,
       plugin,
       source,
+      repo,
       syncedAt,
       description,
       local: localSet.has(skillPath) ? 'yes' : 'no',
       path: skillPath,
     };
   }));
-
-  const marketplace = await readJson(mktFile);
   const pluginRank = new Map((marketplace.plugins || []).map((plugin, index) => [plugin.name, index]));
   rows.sort((a, b) => {
     const rankA = pluginRank.has(a.plugin) ? pluginRank.get(a.plugin) : 999;
@@ -136,53 +165,140 @@ export async function collectSkillRows({
   return rows;
 }
 
-export function renderSkillsTable(rows) {
-  const header = '| Skill | Plugin | Description |';
-  const separator = '|-------|--------|-------------|';
+/**
+ * Scope and "When" copy for the plugins table.
+ * Marketplace descriptions are the source: "Install at user|project scope in|for …"
+ */
+export function pluginScopeAndWhen(plugin) {
+  const description = String(plugin?.description || '').trim();
+  const install = description.match(
+    /Install at (user|project) scope(?:\s+(?:in|for)\s+(.+?))?\.?\s*$/i,
+  );
+  const namedScope = description.match(/\b(user|project) scope\b/i);
+  const scope = (install?.[1] || namedScope?.[1] || 'project').toLowerCase();
+  let when = (install?.[2] || '').trim().replace(/\.$/, '');
+  if (!when) {
+    when = description
+      .replace(/\s*Install at (?:user|project) scope.*$/i, '')
+      .replace(/\.\s*$/, '')
+      .trim();
+  }
+  if (!when) when = `${plugin?.name || 'plugin'} repositories`;
+  const firstWord = when.split(/\s+/)[0] || '';
+  if (firstWord && !/[A-Z]/.test(firstWord)) {
+    when = when.charAt(0).toUpperCase() + when.slice(1);
+  }
+  return { scope, when };
+}
+
+/** Collect marketplace plugins with local skill counts for the README plugins table. */
+export async function collectPluginRows({
+  root = ROOT,
+  mktFile = MKT_FILE,
+  skillsRoot = path.join(root, 'skills'),
+  pluginsRoot = path.join(root, 'plugins'),
+} = {}) {
+  const marketplace = await readJson(mktFile);
+  const localDirs = await findLocalSkills({ root, skillsRoot, pluginsRoot });
+  const counts = new Map();
+  for (const directory of localDirs) {
+    const plugin = pluginOfRelPath(directory);
+    if (!plugin) continue;
+    counts.set(plugin, (counts.get(plugin) || 0) + 1);
+  }
+  return (marketplace.plugins || []).map((plugin) => {
+    const { scope, when } = pluginScopeAndWhen(plugin);
+    return {
+      name: plugin.name,
+      scope,
+      when,
+      skillCount: counts.get(plugin.name) || 0,
+    };
+  });
+}
+
+export function renderPluginsTable(rows) {
+  const header = '| Plugin | Scope | When |';
+  const separator = '|--------|--------|------|';
   if (rows.length === 0) return [header, separator, '| _(none)_ | | |'].join('\n');
   const body = rows.map((row) => {
-    const skill = row.local === 'no'
-      ? `\`${row.name}\` ⚠️ missing`
-      : `[\`${row.name}\`](${row.path})`;
-    return `| ${mdCell(skill)} | ${mdCell(row.plugin)} | ${mdCell(row.description)} |`;
+    const when = row.skillCount === 0
+      ? `${row.when} (placeholder, no skills yet)`
+      : row.when;
+    return `| ${mdCell(`**${row.name}**`)} | ${mdCell(row.scope)} | ${mdCell(when)} |`;
   });
   return [header, separator, ...body].join('\n');
 }
 
-export async function updateReadmeSkillsTable({
+export function renderSkillsTable(rows) {
+  const header = '| Skill | Plugin | Source | Description |';
+  const separator = '|-------|--------|--------|-------------|';
+  if (rows.length === 0) return [header, separator, '| _(none)_ | | | |'].join('\n');
+  const body = rows.map((row) => {
+    const skill = row.local === 'no'
+      ? `\`${row.name}\` ⚠️ missing`
+      : `[\`${row.name}\`](${row.path})`;
+    return `| ${mdCell(skill)} | ${mdCell(row.plugin)} | ${mdCell(sourceRepoLink(row.repo))} | ${mdCell(row.description)} |`;
+  });
+  return [header, separator, ...body].join('\n');
+}
+
+export async function updateReadmeTables({
   checkOnly = false,
   quiet = false,
   readmeFile = README_FILE,
   ...rowOptions
 } = {}) {
-  const rows = await collectSkillRows(rowOptions);
-  const table = renderSkillsTable(rows);
-  const block = `${README_START}\n\n${table}\n\n${README_END}`;
+  const [skillRows, pluginRows] = await Promise.all([
+    collectSkillRows(rowOptions),
+    collectPluginRows(rowOptions),
+  ]);
   let readme;
   try {
     readme = await readFile(readmeFile, 'utf8');
   } catch (error) {
     throw new Error(`README.md unreadable: ${error.message}`);
   }
-  if (!readme.includes(README_START) || !readme.includes(README_END)) {
-    return { changed: true, count: rows.length, missingMarkers: true };
+  const plugins = replaceMarkedBlock(readme, PLUGIN_START, PLUGIN_END, renderPluginsTable(pluginRows));
+  const skills = replaceMarkedBlock(
+    plugins.missing ? readme : plugins.next,
+    README_START,
+    README_END,
+    renderSkillsTable(skillRows),
+  );
+  const missingMarkers = plugins.missing || skills.missing;
+  const changed = !missingMarkers && (plugins.changed || skills.changed);
+  const result = {
+    changed: missingMarkers || changed,
+    count: skillRows.length,
+    pluginCount: pluginRows.length,
+    missingMarkers,
+    missingPluginMarkers: plugins.missing,
+    missingSkillMarkers: skills.missing,
+  };
+  if (missingMarkers || checkOnly || !changed) return result;
+  await writeFile(readmeFile, skills.next, 'utf8');
+  if (!quiet) {
+    log.success(`README tables updated (${pluginRows.length} plugin(s), ${skillRows.length} skill(s))`);
   }
-  const escape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const expression = new RegExp(`${escape(README_START)}[\\s\\S]*?${escape(README_END)}`);
-  const next = readme.replace(expression, () => block);
-  const changed = next !== readme;
-  if (checkOnly || !changed) return { changed, count: rows.length };
-  await writeFile(readmeFile, next, 'utf8');
-  if (!quiet) log.success(`README skills table updated (${rows.length} skill(s))`);
-  return { changed: true, count: rows.length };
+  return { ...result, changed: true };
+}
+
+export const updateReadmeSkillsTable = updateReadmeTables;
+
+function missingMarkerMessage(result) {
+  const parts = [];
+  if (result.missingPluginMarkers) parts.push('<!-- plugins:table:start --> / <!-- plugins:table:end -->');
+  if (result.missingSkillMarkers) parts.push('<!-- skills:table:start --> / <!-- skills:table:end -->');
+  return `README.md missing ${parts.join(' and ') || 'table'} markers`;
 }
 
 export async function refreshReadme({ quiet = true, ...options } = {}) {
-  const result = await updateReadmeSkillsTable({ quiet, ...options });
-  if (result.missingMarkers) {
-    throw new Error('README.md missing <!-- skills:table:start --> / <!-- skills:table:end --> markers');
+  const result = await updateReadmeTables({ quiet, ...options });
+  if (result.missingMarkers) throw new Error(missingMarkerMessage(result));
+  if (result.changed && quiet) {
+    log.success(`README tables updated (${result.pluginCount} plugin(s), ${result.count} skill(s))`);
   }
-  if (result.changed && quiet) log.success(`README skills table updated (${result.count})`);
   return result;
 }
 

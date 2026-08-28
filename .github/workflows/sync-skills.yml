@@ -35,7 +35,7 @@ jobs:
         run: npm run sync
 
       # sync also refreshes README; keep explicit for clarity / if markers drift
-      - name: Refresh README skills table
+      - name: Refresh README tables
         run: npm run readme
 
       - name: Commit to default branch

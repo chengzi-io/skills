@@ -288,7 +288,7 @@ export async function syncAll({ checkOnly = false, remote = {} } = {}) {
   try {
     const result = await updateReadmeSkillsTable({ quiet: true });
     if (result.missingMarkers) {
-      console.error('  !  README.md missing skills:table markers');
+      console.error('  !  README.md missing plugins:table / skills:table markers');
       return {
         ok: false,
         fresh: fresh.length,
@@ -298,9 +298,11 @@ export async function syncAll({ checkOnly = false, remote = {} } = {}) {
         details,
       };
     }
-    if (result.changed) console.log(`  ok  README skills table updated (${result.count})`);
+    if (result.changed) {
+      console.log(`  ok  README tables updated (${result.pluginCount} plugin(s), ${result.count} skill(s))`);
+    }
   } catch (error) {
-    console.error(`  !  README table refresh failed: ${error.message}`);
+    console.error(`  !  README tables refresh failed: ${error.message}`);
     return {
       ok: false,
       fresh: fresh.length,

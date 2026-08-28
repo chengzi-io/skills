@@ -35,7 +35,7 @@ Adding a plugin (not a skill) means all of:
 
 Before every commit:
 
-1. `pnpm validate` — deps, plugin skill dirs, frontmatter, README table
+1. `pnpm validate` — deps, plugin skill dirs, frontmatter, README tables
 2. Claude Code — marketplace, then each plugin you touched:
    ```bash
    claude plugin validate .

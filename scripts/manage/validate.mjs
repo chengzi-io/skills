@@ -19,7 +19,7 @@ import {
 import { pluginOfRelPath, sourceSig } from './catalog.mjs';
 import { updateReadmeSkillsTable } from './readme.mjs';
 
-/** Validate dependencies, marketplace entries, frontmatter, and README table. */
+/** Validate dependencies, marketplace entries, frontmatter, and README tables. */
 export async function validateAll({
   root = ROOT,
   depsFile = DEPS_FILE,
@@ -146,7 +146,7 @@ export async function validateAll({
     }
   });
 
-  await section('README skills table ok', async () => {
+  await section('README tables ok', async () => {
     const result = await updateReadmeSkillsTable({
       checkOnly: true,
       readmeFile,
@@ -156,10 +156,14 @@ export async function validateAll({
       skillsRoot,
       pluginsRoot,
     });
-    if (result.missingMarkers) {
+    if (result.missingPluginMarkers) {
+      reportError('README.md missing <!-- plugins:table:start --> / <!-- plugins:table:end --> markers');
+    }
+    if (result.missingSkillMarkers) {
       reportError('README.md missing <!-- skills:table:start --> / <!-- skills:table:end --> markers');
-    } else if (result.changed) {
-      reportError('README skills table is stale — run: pnpm readme');
+    }
+    if (!result.missingMarkers && result.changed) {
+      reportError('README tables are stale — run: pnpm readme');
     }
   });
 
