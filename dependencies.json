@@ -211,6 +211,94 @@
         "sha": "81536f57b3303b7de7f5bc5b564cc344f9112d68",
         "syncedAt": "2026-08-27T05:17:53.719Z"
       }
+    },
+    {
+      "repo": "AvdLee/Swift-Concurrency-Agent-Skill",
+      "branch": "main",
+      "items": [
+        {
+          "type": "skill",
+          "path": "skills/swift-concurrency",
+          "ignore": [
+            "assets/**"
+          ],
+          "target": {
+            "plugin": "swift",
+            "name": "swift-concurrency"
+          }
+        }
+      ],
+      "resolved": {
+        "sha": "45fa49e4e0b2af4d43b1cb458903f8030ac993bd",
+        "syncedAt": "2026-08-28T05:09:18.853Z"
+      }
+    },
+    {
+      "repo": "AvdLee/Swift-Testing-Agent-Skill",
+      "branch": "main",
+      "items": [
+        {
+          "type": "skill",
+          "path": "swift-testing-expert",
+          "target": {
+            "plugin": "swift",
+            "name": "swift-testing-expert"
+          }
+        }
+      ],
+      "resolved": {
+        "sha": "798e9b1a2bcac164d4f0c781908199e754f0bab6",
+        "syncedAt": "2026-08-27T11:22:07.710Z"
+      }
+    },
+    {
+      "repo": "twostraws/SwiftUI-Agent-Skill",
+      "branch": "main",
+      "items": [
+        {
+          "type": "skill",
+          "path": "swiftui-pro",
+          "ignore": [
+            "skills/**",
+            ".claude-plugin/**",
+            "assets/**",
+            "**/*.png",
+            "**/*.jpg",
+            "**/*.jpeg",
+            "**/*.gif",
+            "**/*.svg"
+          ],
+          "target": {
+            "plugin": "swift",
+            "name": "swiftui-pro"
+          }
+        }
+      ],
+      "resolved": {
+        "sha": "be297ff80dddec529af1f9b1f1f114aab6c9d11c",
+        "syncedAt": "2026-08-28T04:59:52.598Z"
+      }
+    },
+    {
+      "repo": "twostraws/SwiftData-Agent-Skill",
+      "branch": "main",
+      "items": [
+        {
+          "type": "skill",
+          "path": "swiftdata-pro",
+          "ignore": [
+            "assets/**"
+          ],
+          "target": {
+            "plugin": "swift",
+            "name": "swiftdata-pro"
+          }
+        }
+      ],
+      "resolved": {
+        "sha": "922d989473a9914210b41529a1ac5636aff4b8c1",
+        "syncedAt": "2026-08-28T05:04:28.023Z"
+      }
     }
   ]
 }

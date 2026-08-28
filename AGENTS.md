@@ -17,6 +17,7 @@
 | `foundations` | user | Language-agnostic: requirements, TDD, architecture, decisions |
 | `golang` | project | Go-only |
 | `python` | project | Python-only |
+| `swift` | project | Swift / Xcode / Apple platforms |
 | `web` | project | Web, React, UI |
 
 ## New plugin

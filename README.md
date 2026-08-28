@@ -2,7 +2,7 @@
 
 Agent Skills marketplace for Claude Code, Grok, and Codex. Plugins are split so a session only loads skill names and descriptions for the stacks you enabled — a Python repo does not pay for Go or React skill text.
 
-**foundations** is language-agnostic (user scope). **golang**, **python**, and **web** are per-project.
+**foundations** is language-agnostic (user scope). **golang**, **python**, **swift**, and **web** are per-project.
 
 Do not clone this repo into `~/.agents/skills`. That loads every skill into every session.
 
@@ -17,6 +17,8 @@ claude plugin marketplace add chengzi-io/skills
 claude plugin install foundations@chengzi-skills -s user
 # in a Go repo:
 claude plugin install golang@chengzi-skills -s project
+# in a Swift / Xcode repo:
+claude plugin install swift@chengzi-skills -s project
 ```
 
 `-s user` or `-s project` (`local` also exists). Restart the session after install.
@@ -28,6 +30,8 @@ grok plugin marketplace add chengzi-io/skills
 grok plugin install foundations --trust
 # language plugin, e.g. Go:
 grok plugin install golang --trust
+# Swift / Xcode repo:
+grok plugin install swift --trust
 ```
 
 No `--scope`. Install is user-level. For one repo only, use Grok's project plugin directory (`.grok/plugins/`).
@@ -39,6 +43,8 @@ codex plugin marketplace add chengzi-io/skills
 codex plugin add foundations@chengzi-skills
 # language plugin, e.g. Go:
 codex plugin add golang@chengzi-skills
+# Swift / Xcode repo:
+codex plugin add swift@chengzi-skills
 ```
 
 No `--scope`. Commands follow each CLI's current plugin docs if flags change.
@@ -50,6 +56,7 @@ No `--scope`. Commands follow each CLI's current plugin docs if flags change.
 | **foundations** | user | Every project |
 | **golang** | project | Go repositories |
 | **python** | project | Python repositories (placeholder, no skills yet) |
+| **swift** | project | Swift / Xcode / Apple-platform repositories |
 | **web** | project | Frontend / React / UI |
 
 ## Skills
@@ -73,6 +80,10 @@ Auto-generated. Do not edit the table by hand. Source pins and sync dates: `pnpm
 | [`write-ears`](plugins/foundations/skills/write-ears) | foundations | Write and review EARS functional requirements and acceptance criteria. Use when the user asks to wri… |
 | [`writing-openapi-specs`](plugins/foundations/skills/writing-openapi-specs) | foundations | Reference guide for OpenAPI specification best practices, naming conventions, and expressing complex… |
 | [`oapi-codegen-best-practices`](plugins/golang/skills/oapi-codegen-best-practices) | golang | Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server… |
+| [`swift-concurrency`](plugins/swift/skills/swift-concurrency) | swift | Diagnose Swift Concurrency issues, refactor callback-based code to async/await, and guide Swift 6 mi… |
+| [`swift-testing-expert`](plugins/swift/skills/swift-testing-expert) | swift | Expert guidance for Swift Testing: test structure, #expect/#require macros, traits and tags, paramet… |
+| [`swiftdata-pro`](plugins/swift/skills/swiftdata-pro) | swift | Writes, reviews, and improves SwiftData code using modern APIs and best practices. Use when reading,… |
+| [`swiftui-pro`](plugins/swift/skills/swiftui-pro) | swift | Comprehensively reviews SwiftUI code for best practices on modern APIs, maintainability, and perform… |
 | [`emil-design-eng`](plugins/web/skills/emil-design-eng) | web | This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, a… |
 | [`frontend-design`](plugins/web/skills/frontend-design) | web | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing on… |
 | [`prototype`](plugins/web/skills/prototype) | web | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual pic… |

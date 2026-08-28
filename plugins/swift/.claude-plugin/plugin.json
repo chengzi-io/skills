@@ -1,0 +1,10 @@
+{
+  "name": "swift",
+  "version": "0.1.0",
+  "description": "Swift and Apple-platform skills. Install at project scope in Swift / Xcode repositories.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT"
+}
