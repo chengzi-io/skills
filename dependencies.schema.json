@@ -82,6 +82,11 @@
           "type": "string",
           "minLength": 1
         },
+        "ignore": {
+          "type": "array",
+          "description": "Glob patterns relative to the skill root that should not be downloaded or compared.",
+          "items": { "type": "string", "minLength": 1 }
+        },
         "target": {
           "$ref": "#/$defs/target"
         }
