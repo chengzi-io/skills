@@ -299,6 +299,56 @@
         "sha": "922d989473a9914210b41529a1ac5636aff4b8c1",
         "syncedAt": "2026-08-28T05:04:28.023Z"
       }
+    },
+    {
+      "repo": "fayazara/macos-app-skills",
+      "branch": "main",
+      "items": [
+        {
+          "type": "skill",
+          "path": "auto-update",
+          "target": {
+            "plugin": "macos",
+            "name": "macos-auto-update"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "macos-patterns",
+          "target": {
+            "plugin": "macos",
+            "name": "macos-patterns"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "notch-ui",
+          "target": {
+            "plugin": "macos",
+            "name": "macos-notch-ui"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "release",
+          "target": {
+            "plugin": "macos",
+            "name": "macos-release"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "settings-ui",
+          "target": {
+            "plugin": "macos",
+            "name": "macos-settings-ui"
+          }
+        }
+      ],
+      "resolved": {
+        "sha": "a60365ae85bfc3d1f2f8b260b080d77bfb2f3ec0",
+        "syncedAt": "2026-08-28T05:13:22.107Z"
+      }
     }
   ]
 }

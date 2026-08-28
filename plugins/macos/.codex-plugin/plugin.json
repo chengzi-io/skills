@@ -1,0 +1,17 @@
+{
+  "name": "macos",
+  "version": "0.1.0",
+  "description": "Native macOS app skills. Install at project scope in macOS app repositories.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Chengzi macOS",
+    "shortDescription": "Native macOS app skills",
+    "developerName": "JoJoJotarou",
+    "category": "Engineering"
+  }
+}

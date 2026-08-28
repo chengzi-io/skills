@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "chengzi-skills",
-  "description": "Reusable Agent Skills. Install foundations at user scope; install golang, python, swift, or web at project scope.",
+  "description": "Reusable Agent Skills. Install foundations at user scope; install golang, python, swift, macos, or web at project scope.",
   "owner": {
     "name": "JoJoJotarou",
     "url": "https://github.com/chengzi-io/skills"
@@ -32,6 +32,13 @@
       "name": "swift",
       "description": "Swift and Apple-platform skills. Install at project scope in Swift / Xcode repositories.",
       "source": "./plugins/swift",
+      "category": "engineering",
+      "version": "0.1.0"
+    },
+    {
+      "name": "macos",
+      "description": "Native macOS app skills. Install at project scope in macOS app repositories.",
+      "source": "./plugins/macos",
       "category": "engineering",
       "version": "0.1.0"
     },

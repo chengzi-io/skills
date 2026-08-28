@@ -1,0 +1,10 @@
+{
+  "name": "macos",
+  "version": "0.1.0",
+  "description": "Native macOS app skills. Install at project scope in macOS app repositories.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT"
+}

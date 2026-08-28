@@ -1,6 +1,6 @@
 {
   "name": "chengzi-skills",
-  "description": "Reusable Agent Skills. Install foundations at user scope; install golang, python, swift, or web at project scope.",
+  "description": "Reusable Agent Skills. Install foundations at user scope; install golang, python, swift, macos, or web at project scope.",
   "owner": {
     "name": "JoJoJotarou",
     "url": "https://github.com/chengzi-io/skills"
@@ -44,6 +44,16 @@
       "source": {
         "type": "local",
         "path": "./plugins/swift"
+      }
+    },
+    {
+      "name": "macos",
+      "description": "Native macOS app skills. Install at project scope in macOS app repositories.",
+      "category": "engineering",
+      "version": "0.1.0",
+      "source": {
+        "type": "local",
+        "path": "./plugins/macos"
       }
     },
     {

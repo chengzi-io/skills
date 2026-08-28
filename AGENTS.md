@@ -18,6 +18,7 @@
 | `golang` | project | Go-only |
 | `python` | project | Python-only |
 | `swift` | project | Swift / Xcode / Apple platforms |
+| `macos` | project | Native macOS apps |
 | `web` | project | Web, React, UI |
 
 ## New plugin

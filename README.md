@@ -2,7 +2,7 @@
 
 Agent Skills marketplace for Claude Code, Grok, and Codex. Plugins are split so a session only loads skill names and descriptions for the stacks you enabled — a Python repo does not pay for Go or React skill text.
 
-**foundations** is language-agnostic (user scope). **golang**, **python**, **swift**, and **web** are per-project.
+**foundations** is language-agnostic (user scope). **golang**, **python**, **swift**, **macos**, and **web** are per-project.
 
 Do not clone this repo into `~/.agents/skills`. That loads every skill into every session.
 
@@ -19,6 +19,8 @@ claude plugin install foundations@chengzi-skills -s user
 claude plugin install golang@chengzi-skills -s project
 # in a Swift / Xcode repo:
 claude plugin install swift@chengzi-skills -s project
+# in a macOS app repo (also install swift):
+claude plugin install macos@chengzi-skills -s project
 ```
 
 `-s user` or `-s project` (`local` also exists). Restart the session after install.
@@ -32,6 +34,8 @@ grok plugin install foundations --trust
 grok plugin install golang --trust
 # Swift / Xcode repo:
 grok plugin install swift --trust
+# macOS app repo (also install swift):
+grok plugin install macos --trust
 ```
 
 No `--scope`. Install is user-level. For one repo only, use Grok's project plugin directory (`.grok/plugins/`).
@@ -45,6 +49,8 @@ codex plugin add foundations@chengzi-skills
 codex plugin add golang@chengzi-skills
 # Swift / Xcode repo:
 codex plugin add swift@chengzi-skills
+# macOS app repo (also install swift):
+codex plugin add macos@chengzi-skills
 ```
 
 No `--scope`. Commands follow each CLI's current plugin docs if flags change.
@@ -57,6 +63,7 @@ No `--scope`. Commands follow each CLI's current plugin docs if flags change.
 | **golang** | project | Go repositories |
 | **python** | project | Python repositories (placeholder, no skills yet) |
 | **swift** | project | Swift / Xcode / Apple-platform repositories |
+| **macos** | project | Native macOS app repositories (placeholder, no skills yet) |
 | **web** | project | Frontend / React / UI |
 
 ## Skills
@@ -84,6 +91,11 @@ Auto-generated. Do not edit the table by hand. Source pins and sync dates: `pnpm
 | [`swift-testing-expert`](plugins/swift/skills/swift-testing-expert) | swift | Expert guidance for Swift Testing: test structure, #expect/#require macros, traits and tags, paramet… |
 | [`swiftdata-pro`](plugins/swift/skills/swiftdata-pro) | swift | Writes, reviews, and improves SwiftData code using modern APIs and best practices. Use when reading,… |
 | [`swiftui-pro`](plugins/swift/skills/swiftui-pro) | swift | Comprehensively reviews SwiftUI code for best practices on modern APIs, maintainability, and perform… |
+| [`macos-auto-update`](plugins/macos/skills/macos-auto-update) | macos | Add Sparkle auto-update support to a native macOS app. Use this skill whenever the user wants to add… |
+| [`macos-notch-ui`](plugins/macos/skills/macos-notch-ui) | macos | Add a Dynamic Island-style notch UI to a macOS app. Use this skill whenever the user wants to create… |
+| [`macos-patterns`](plugins/macos/skills/macos-patterns) | macos | Essential native macOS development patterns that web developers don't know about. Use this skill whe… |
+| [`macos-release`](plugins/macos/skills/macos-release) | macos | Release a native macOS app to GitHub with DMG packaging and Sparkle appcast updates. Use this skill … |
+| [`macos-settings-ui`](plugins/macos/skills/macos-settings-ui) | macos | Build a proper macOS settings/preferences window with liquid glass support for macOS 26 (Tahoe). Use… |
 | [`emil-design-eng`](plugins/web/skills/emil-design-eng) | web | This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, a… |
 | [`frontend-design`](plugins/web/skills/frontend-design) | web | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing on… |
 | [`prototype`](plugins/web/skills/prototype) | web | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual pic… |
