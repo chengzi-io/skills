@@ -10,6 +10,32 @@
 - Plugin membership is the directory on disk. Do not put skill paths on marketplace `plugins[].skills` (Claude resolves those relative to the plugin root).
 - Follow @GIT.md
 
+## Third-party skills
+
+This marketplace **pins** upstream skills. Most entries in `plugins/*/skills/` come from GitHub via [`dependencies.json`](dependencies.json). Weekly CI (`.github/workflows/sync-skills.yml`) re-downloads them onto the default branch.
+
+**Prefer pin over rewrite.** A maintained upstream with a self-contained `SKILL.md` (Vercel React, AvdLee Swift, shadcn) belongs in `dependencies.json`, not a first-party copy.
+
+### Add a pin
+
+1. `pnpm manage` → add from GitHub (`owner/repo`, pick skills, pick plugin). Do not hand-copy a GitHub tree into `plugins/`.
+2. That writes `dependencies.json`, copies files into `plugins/<plugin>/skills/<name>/`, and refreshes README tables.
+3. `pnpm validate`. Commit the pin + synced files together.
+
+Do not edit files that exist upstream for a pinned skill. Sync overwrites them. Extra local-only files in that directory survive; upstream paths do not.
+
+### When not to pin (write first-party instead)
+
+Pin fails when **any** of:
+
+- No suitable upstream.
+- Upstream is a **mesh**: `SKILL.md` tells the model to load sibling skills (`See owner/repo@other-skill`). Pinning a subset leaves dangling refs; pinning the whole suite blows the plugin's always-loaded description list (and can make a session look like that language/stack is the default).
+- We need a different policy than upstream (slim traps-only, drop vendor libraries, drop always-load orchestrators). Sync would revert local edits.
+
+Then distill: read upstream, write our own skill under `plugins/<plugin>/skills/<name>/`, add `metadata.version`. Do **not** list it in `dependencies.json`. Do **not** tell the model to load the upstream skill at runtime.
+
+Keep maintainer notes **in that skill directory**, not at plugin root or `docs/`: `PROVENANCE.md` (upstream repo, commit, what we took and dropped) and `DECISION.md` (why distill instead of pin). Runtime `SKILL.md` / `reference/` stay silent about those files.
+
 ## Where a skill goes
 
 | Plugin | Scope | Put here when |
