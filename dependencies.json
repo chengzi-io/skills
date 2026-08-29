@@ -349,6 +349,24 @@
         "sha": "a60365ae85bfc3d1f2f8b260b080d77bfb2f3ec0",
         "syncedAt": "2026-08-28T05:13:22.107Z"
       }
+    },
+    {
+      "repo": "anthropics/knowledge-work-plugins",
+      "branch": "main",
+      "items": [
+        {
+          "type": "skill",
+          "path": "engineering/skills/documentation",
+          "target": {
+            "plugin": "foundations",
+            "name": "documentation"
+          }
+        }
+      ],
+      "resolved": {
+        "sha": "8c3ec5534fc6948b461c6a0275bdfdb8ab0c9888",
+        "syncedAt": "2026-08-29T15:50:24.240Z"
+      }
     }
   ]
 }
