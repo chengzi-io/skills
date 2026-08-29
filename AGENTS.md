@@ -8,7 +8,6 @@
   ```
 - New skill packages go in `plugins/<plugin>/skills/<name>/`. Never add a skill under the repo-root `skills/` directory.
 - Plugin membership is the directory on disk. Do not put skill paths on marketplace `plugins[].skills` (Claude resolves those relative to the plugin root).
-- Follow @GIT.md
 
 ## Third-party skills
 
