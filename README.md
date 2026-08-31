@@ -80,7 +80,7 @@ Auto-generated. Do not edit the table by hand. Source pins and sync dates: `pnpm
 
 | Skill | Plugin | Source | Description |
 |-------|--------|--------|-------------|
-| [`caveman`](plugins/foundations/skills/caveman) | foundations | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) | Ultra-compressed communication mode. Cuts output tokens 65% (measured) by speaking like caveman whil… |
+| [`caveman`](plugins/foundations/skills/caveman) | foundations | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) | Ultra-compressed communication mode that cuts output tokens while keeping technical accuracy. Levels… |
 | [`documentation`](plugins/foundations/skills/documentation) | foundations | [anthropics/knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins) | Write and maintain technical documentation. Trigger with "write docs for", "document this", "create … |
 | [`domain-modeling`](plugins/foundations/skills/domain-modeling) | foundations | [mattpocock/skills](https://github.com/mattpocock/skills) | Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or edi… |
 | [`eli5`](plugins/foundations/skills/eli5) | foundations | [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) | Explain a topic like I'm a 5 year old. Use when the user types /eli5 <topic> or asks for a dead-simp… |

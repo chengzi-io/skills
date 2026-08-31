@@ -102,8 +102,8 @@
       "repo": "shadcn/ui",
       "branch": "main",
       "resolved": {
-        "sha": "deda4df80fb350230b2fce2b575e769a90cae076",
-        "syncedAt": "2026-08-10T14:40:25.055Z"
+        "sha": "63c1308d112b6b1205d86244a156cca1abef5087",
+        "syncedAt": "2026-08-31T12:38:08.690Z"
       },
       "items": [
         {
@@ -208,8 +208,8 @@
         }
       ],
       "resolved": {
-        "sha": "81536f57b3303b7de7f5bc5b564cc344f9112d68",
-        "syncedAt": "2026-08-27T05:17:53.719Z"
+        "sha": "df2ccd85c94ec3c8289cb62ac020d241ccfb0c60",
+        "syncedAt": "2026-08-31T12:38:08.691Z"
       }
     },
     {
