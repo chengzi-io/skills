@@ -50,8 +50,8 @@
       "repo": "anthropics/skills",
       "branch": "main",
       "resolved": {
-        "sha": "f17010c9bb483898c1d9c9f42dde2b3a98889434",
-        "syncedAt": "2026-08-10T14:39:36.956Z"
+        "sha": "41bbe19d1a1a7eaab5e7bb9050a417e5c6cffc8f",
+        "syncedAt": "2026-09-07T11:31:39.945Z"
       },
       "items": [
         {
@@ -102,8 +102,8 @@
       "repo": "shadcn/ui",
       "branch": "main",
       "resolved": {
-        "sha": "63c1308d112b6b1205d86244a156cca1abef5087",
-        "syncedAt": "2026-08-31T12:38:08.690Z"
+        "sha": "5c7072da672b0048bc6771e3204063a2537df91a",
+        "syncedAt": "2026-09-07T11:31:39.946Z"
       },
       "items": [
         {
@@ -208,8 +208,8 @@
         }
       ],
       "resolved": {
-        "sha": "df2ccd85c94ec3c8289cb62ac020d241ccfb0c60",
-        "syncedAt": "2026-08-31T12:38:08.691Z"
+        "sha": "15581d14007fd01fb3f132016741962f34936ca2",
+        "syncedAt": "2026-09-07T11:31:39.946Z"
       }
     },
     {
