@@ -18,6 +18,10 @@ table, not a catalogue — stop at the signals the repo actually shows.
 A repo with an existing lint config keeps it. Adding a second linter beside a
 working one is a conflict, not an upgrade.
 
+A golangci-lint v1 config does not run under v2. Migrate it with
+`golangci-lint migrate` instead of hand-editing keys, and let the tool emit
+the file rather than writing a config from scratch.
+
 ## 2. When to add a matrix
 
 Add a matrix only when a job genuinely differs per axis:

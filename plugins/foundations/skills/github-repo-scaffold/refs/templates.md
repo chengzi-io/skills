@@ -157,11 +157,15 @@ it Dependabot titles are not Conventional, and the release job reads them.
 
 ## 2. Commit rules and hooks
 
-### `commitlint.config.mjs`
+### `.commitlintrc.yaml`
 
-```js
-export default { extends: ['@commitlint/config-conventional'] };
+```yaml
+extends:
+  - "@commitlint/config-conventional"
 ```
+
+YAML keeps the file readable in any repo. A JavaScript config is fine too
+when the repo already has one — keep it.
 
 ### `lefthook.yml` — Node
 
@@ -221,6 +225,10 @@ commit-msg:
       run: pnpm exec commitlint --edit {1}
 ```
 
+commitlint runs on Node. On a repository with no Node toolchain at all, drop
+the `commit-msg` hook and keep commit enforcement in CI on the PR title
+only.
+
 ### Husky kept
 
 When the repo already runs husky, keep it. `.husky/commit-msg`:
@@ -233,6 +241,11 @@ plus `.husky/pre-commit` running the linter, and `"prepare": "husky"` in
 `package.json`. Do not add `lefthook.yml` beside it.
 
 ## 3. Workflows
+
+The three `ci.yml` blocks below are shapes, one per toolchain family. Pick
+the shape the detected stack needs and replace the commands with the ones
+that exist in the repo. Lint tool selection lives in `refs/variants.md`
+section 1 — these blocks assume the tool is already chosen.
 
 ### `.github/workflows/pr-title.yml`
 
@@ -375,24 +388,6 @@ jobs:
       - run: uv run pytest
 ```
 
-### `.golangci.yml` — v2
-
-```yaml
-version: "2"
-
-run:
-  timeout: 5m
-
-linters:
-  default: standard
-  enable:
-    - bodyclose
-    - errorlint
-    - gosec
-    - misspell
-    - revive
-```
-
 ### `.github/workflows/release.yml`
 
 ```yaml
@@ -460,12 +455,18 @@ read `paths_released` and the `<path>--release_created` outputs instead.
 
 ```json
 {
-  ".": "0.1.0"
+  ".": "0.0.0"
 }
 ```
 
-Keep the manifest in sync with the version the repo already ships. Start a
-repo that has no tags at `0.1.0`, or at `1.0.0` when the contract is stable.
+Keep the manifest in sync with the version the repo already ships. A new
+repository starts at `0.0.0`; the first release then proposes the first real
+version. Writing the entry is the supported way to tell release-please the
+current version of a package it has never released.
+
+When the repo already ships a version, write that version instead, and make
+it agree with the version file the language uses (`package.json`, `Cargo.toml`,
+`pyproject.toml`).
 
 ## 4. Publish shapes
 

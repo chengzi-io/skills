@@ -32,8 +32,7 @@ Decisions already made. Apply them; do not offer them as choices.
 | Git hooks | lefthook, `lefthook.yml` | Repo already runs husky → keep husky |
 | Commit rules | commitlint + `@commitlint/config-conventional` | — |
 | PR title rules | `amannn/action-semantic-pull-request@v6` | — |
-| Node lint | Biome + Ultracite on a new project | Existing ESLint config → keep ESLint |
-| Go lint | golangci-lint v2 | — |
+| Lint and format | detected per ecosystem, `refs/variants.md` section 1 | An existing config always wins |
 | Release | release-please-action@v5, Release PR merged by a human | — |
 | Registry auth | OIDC / trusted publishing | Registry without OIDC → token in environment secrets |
 
@@ -50,7 +49,7 @@ question the repository can already answer.
 | --- | --- |
 | `go.mod`, `package.json`, `pyproject.toml`, `Cargo.toml`, `*.xcodeproj`, `eas.json` | toolchain, lint, test commands |
 | `lefthook.yml`, `.husky/`, a `prepare` script | hook manager — husky wins when present |
-| ESLint config, `biome.json*`, `.golangci.yml` | lint tool — existing config wins |
+| an existing lint or format config at the repo root | lint tool — existing config wins |
 | `bin` or `publishConfig` in package.json, `Dockerfile`, goreleaser config, `tauri.conf.json`, `eas.json` | artifact type, so the CD steps |
 | `vercel.json`, `netlify.toml`, `wrangler.toml`, `fly.toml`, k8s manifests, an ArgoCD Application | deploy target, so the CD steps |
 | existing `.github/workflows/` | merge into them, never overwrite |
@@ -94,7 +93,7 @@ Write files from `refs/templates.md`. Rules:
 
 ### Phase 4 — hand-off
 
-End with the settings only a human can change (section 6).
+Apply or teach the protection surface (section 6), then end there.
 
 ## 4. Variant heuristics
 
@@ -127,6 +126,10 @@ Check each item:
    secrets or OIDC.
 9. Dependabot commits carry a Conventional prefix, so a dependency bump
    cannot fake a minor or major release.
+10. Branch protection exists on the release branch, requires the title check
+    and the CI job names, and squash merge uses the PR title as the commit
+    message. Audit this read-only with `gh api` when a token is available,
+    otherwise report it as a gap for the owner.
 
 Output:
 
@@ -137,25 +140,120 @@ Output:
 Verdicts: `pass`, `gap` (missing, add it), `conflict` (present but wrong or
 unsafe, fix it), `n/a` (no signal).
 
-## 6. Hand-off checklist
+## 6. Protection surface
 
-The agent cannot change these. State them last.
+The pipeline is only as strong as its weakest protection. Set every item, or
+teach every item. An item left unset is a hole the title gate gets pushed
+through — a merge commit bypasses a PR title check the branch never
+required.
 
-- Branch protection on the release branch: require a PR, require the status
-  checks by exact job name, require the PR title check.
-- Merge mode: squash, with the PR title as the commit message. This is what
-  makes title validation govern the real commit.
-- Actions permission default: read repository contents and packages.
-- Environments with required reviewers when CD deploys to production.
-- Every secret the generated workflows name, added at repository or
-  environment scope.
+Apply these only after the phase 2 plan is approved: they change how the
+whole team merges.
+
+### 6.1 When `gh` is authenticated
+
+Run `gh auth status`. With a token that can administer the repository, apply
+the settings, then read them back (6.3).
+
+```bash
+owner_repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+branch=main
+
+gh api --method PUT "repos/$owner_repo/branches/$branch/protection" --input - <<'JSON'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["Validate PR title", "Lint, typecheck, test"]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 1,
+    "dismiss_stale_reviews": true
+  },
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_conversation_resolution": true
+}
+JSON
+
+gh api --method PATCH "repos/$owner_repo" \
+  -F allow_squash_merge=true \
+  -F squash_merge_commit_title=PR_TITLE \
+  -F allow_merge_commit=false \
+  -F allow_rebase_merge=false \
+  -F delete_branch_on_merge=true
+
+gh api --method PUT "repos/$owner_repo/actions/permissions/workflow" --input - <<'JSON'
+{ "default_workflow_permissions": "read" }
+JSON
+```
+
+Rules inside this block:
+
+- Each `contexts` entry must equal a workflow job `name:` value. Renaming a
+  job silently drops the requirement.
+- `contexts` is the simple form of `required_status_checks`. Use the `checks`
+  array instead when a check must be bound to a specific GitHub App id.
+- `squash_merge_commit_title=PR_TITLE` is what makes the checked title become
+  the commit. Without it the squash body wins and the gate is decoration.
+- `enforce_admins` may be `false` when the team needs an admin escape hatch.
+  Decide it out loud; never leave it implicit.
+
+Secrets and deploy environments:
+
+```bash
+echo "$NPM_TOKEN" | gh secret set NPM_TOKEN --repo "$owner_repo"
+
+echo "$NPM_TOKEN" | gh secret set NPM_TOKEN --repo "$owner_repo" --env production
+
+gh api --method PUT "repos/$owner_repo/environments/production" --input - <<'JSON'
+{ "reviewers": [{ "type": "User", "id": 12345 }] }
+JSON
+```
+
+Feed the value on stdin. A token on the command line lands in shell history
+and in the process list. Use a real numeric reviewer id — an environment with
+no reviewer is not protected, it is only a name.
+
+### 6.2 When `gh` is missing or unauthenticated
+
+Do not leave the surface to chance. Hand the user the exact commands from
+6.1, plus the click path:
+
+- Settings → Branches → add a rule for the release branch: require a pull
+  request, require the status checks by job name, require conversation
+  resolution, block force pushes and deletions.
+- Settings → General: allow squash merging only, and set the default commit
+  message to the pull request title.
+- Settings → Actions → General: workflow permissions read-only.
+- Settings → Environments: create the deploy environment with required
+  reviewers.
+- Settings → Secrets and variables → Actions: add every secret the generated
+  workflows name, at environment scope when the job deploys.
+
+### 6.3 Verify
+
+Read the settings back and report one row per item.
+
+```bash
+gh api "repos/$owner_repo/branches/$branch/protection" --jq '.required_status_checks.contexts'
+gh api "repos/$owner_repo" --jq '{squash: .allow_squash_merge, title: .squash_merge_commit_title}'
+gh api "repos/$owner_repo/actions/permissions/workflow" --jq .default_workflow_permissions
+```
+
+| Item | State |
+| --- | --- |
+| Branch protection requires the title check | set / taught / gap |
+
+`set` means the read-back shows it. `taught` means the user holds the command
+or click path. `gap` is a failure — fix it before finishing the task.
 
 ## 7. Do not
 
 - Do not present the section 1 defaults as questions.
-- Do not migrate a husky repo to lefthook, or an ESLint repo to Biome.
-- Do not overwrite existing workflows, hook configs, or templates.
-- Do not generate a matrix, an image job, or a deploy step without its
+- Do not swap an existing hook manager or an existing lint tool for a default.
+- Do not overwrite existing workflows, hook configs, or templates.- Do not generate a matrix, an image job, or a deploy step without its
   signal.
 - Do not write a step that calls a script the repo does not have.
 - Do not grant workflow-level `write` permissions.
