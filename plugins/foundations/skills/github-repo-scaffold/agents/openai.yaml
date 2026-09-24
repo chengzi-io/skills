@@ -1,0 +1,3 @@
+interface:
+  display_name: "GitHub repo scaffold"
+  short_description: "Scaffold commit rules, CI gates, and release/CD pipelines"
