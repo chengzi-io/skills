@@ -12,7 +12,7 @@ description: >
   自动发布, 提交规范.
 license: MIT
 metadata:
-  version: "2026.09.24"
+  version: "2026.10.11"
 ---
 
 # GitHub repo scaffold
@@ -33,7 +33,7 @@ Decisions already made. Apply them; do not offer them as choices.
 | Commit rules | commitlint + `@commitlint/config-conventional` | — |
 | PR title rules | `amannn/action-semantic-pull-request@v6` | — |
 | Lint and format | detected per ecosystem, `refs/variants.md` section 1 | An existing config always wins |
-| Release | release-please-action@v5, Release PR merged by a human | — |
+| Release | release-please-action@v5 with a GitHub App token, Release PR merged by a human | — |
 | Registry auth | OIDC / trusted publishing | Registry without OIDC → token in environment secrets |
 
 `refs/templates.md` pins the action majors verified on 2026-09-24. Check the
@@ -91,9 +91,24 @@ Write files from `refs/templates.md`. Rules:
 6. One workflow per concern: title, CI, release. Do not merge them into one
    file to save a file.
 
-### Phase 4 — hand-off
+### Phase 4 — land the files
 
-Apply or teach the protection surface (section 6), then end there.
+Which path depends on whether the release branch is already protected.
+
+- New repository (no remote, empty remote, or release branch unprotected):
+  commit the scaffold directly on the release branch and push. No feature
+  branch, no first PR — there is no gate yet to pass through, and the branch
+  protection API returns 404 for a branch that does not exist.
+- Existing protected repository: put the scaffold on a branch and open a PR.
+  It goes through the gate like any other change.
+
+### Phase 5 — hand-off
+
+Apply or teach the protection surface (section 6) after the files are on
+the release branch, then end there. This holds for an existing repository
+too: requiring a new check before the scaffold PR merges leaves that PR
+stuck. A `pull_request_target` workflow runs from the base branch, so the
+title check cannot report on the PR that adds it.
 
 ## 4. Variant heuristics
 
@@ -124,9 +139,11 @@ Check each item:
 7. Title workflow fork-safe; no PR checkout under `pull_request_target`.
 8. Publish jobs gated on release output; registry credentials come from
    secrets or OIDC.
-9. Dependabot commits carry a Conventional prefix, so a dependency bump
+9. release-please runs on a GitHub App token. On `GITHUB_TOKEN` the Release
+   PR starts no checks and can never merge.
+10. Dependabot commits carry a Conventional prefix, so a dependency bump
    cannot fake a minor or major release.
-10. Branch protection exists on the release branch, requires the title check
+11. Branch protection exists on the release branch, requires the title check
     and the CI job names, and squash merge uses the PR title as the commit
     message. Audit this read-only with `gh api` when a token is available,
     otherwise report it as a gap for the owner.
@@ -155,11 +172,18 @@ whole team merges.
 Run `gh auth status`. With a token that can administer the repository, apply
 the settings, then read them back (6.3).
 
+Set `reviews` from the number of people who can push. A solo maintainer
+cannot approve their own PR, so with `enforce_admins: true` a count of 1
+blocks every merge. Solo → `0`: the PR and its checks are still required,
+only the human approval is dropped. Two or more → `1`.
+
 ```bash
 owner_repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 branch=main
+pushers=$(gh api "repos/$owner_repo/collaborators?per_page=100" --jq '[.[] | select(.permissions.push)] | length')
+reviews=$([ "$pushers" -ge 2 ] && echo 1 || echo 0)
 
-gh api --method PUT "repos/$owner_repo/branches/$branch/protection" --input - <<'JSON'
+gh api --method PUT "repos/$owner_repo/branches/$branch/protection" --input - <<JSON
 {
   "required_status_checks": {
     "strict": true,
@@ -167,7 +191,7 @@ gh api --method PUT "repos/$owner_repo/branches/$branch/protection" --input - <<
   },
   "enforce_admins": true,
   "required_pull_request_reviews": {
-    "required_approving_review_count": 1,
+    "required_approving_review_count": $reviews,
     "dismiss_stale_reviews": true
   },
   "restrictions": null,
@@ -200,7 +224,13 @@ Rules inside this block:
 - `enforce_admins` may be `false` when the team needs an admin escape hatch.
   Decide it out loud; never leave it implicit.
 
-Secrets and deploy environments:
+Secrets and deploy environments. The release App needs its client id as a
+variable and its private key as a secret:
+
+```bash
+gh variable set RELEASE_APP_CLIENT_ID --repo "$owner_repo" --body "$client_id"
+gh secret set RELEASE_APP_PRIVATE_KEY --repo "$owner_repo" < release-app.private-key.pem
+```
 
 ```bash
 echo "$NPM_TOKEN" | gh secret set NPM_TOKEN --repo "$owner_repo"
@@ -222,13 +252,19 @@ Do not leave the surface to chance. Hand the user the exact commands from
 6.1, plus the click path:
 
 - Settings → Branches → add a rule for the release branch: require a pull
-  request, require the status checks by job name, require conversation
+  request (required approvals 0 for a solo maintainer, 1 for a team),
+  require the status checks by job name, require conversation
   resolution, block force pushes and deletions.
 - Settings → General: allow squash merging only, and set the default commit
   message to the pull request title.
 - Settings → Actions → General: workflow permissions read-only.
 - Settings → Environments: create the deploy environment with required
   reviewers.
+- Developer settings → GitHub Apps → New GitHub App: webhook off,
+  repository permissions Contents and Pull requests read and write. Generate
+  a private key, then install the App on the repository.
+- Settings → Secrets and variables → Actions: add `RELEASE_APP_CLIENT_ID`
+  as a variable and `RELEASE_APP_PRIVATE_KEY` as a secret.
 - Settings → Secrets and variables → Actions: add every secret the generated
   workflows name, at environment scope when the job deploys.
 

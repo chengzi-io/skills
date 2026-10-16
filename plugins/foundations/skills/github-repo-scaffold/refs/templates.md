@@ -9,6 +9,7 @@ Versions below verified 2026-09-24.
 | --- | --- |
 | `amannn/action-semantic-pull-request` | `v6` |
 | `googleapis/release-please-action` | `v5` |
+| `actions/create-github-app-token` | `v3` |
 | `actions/checkout` | `v7` |
 | `actions/setup-node` | `v7` |
 | `actions/setup-go` | `v7` |
@@ -408,16 +409,21 @@ jobs:
   release-please:
     name: Release please
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - uses: googleapis/release-please-action@v5
         id: release
         with:
+          token: ${{ steps.app-token.outputs.token }}
           config-file: .github/release-please-config.json
           manifest-file: .release-please-manifest.json
 
@@ -433,6 +439,12 @@ jobs:
       - uses: actions/checkout@v7
       # artifact steps from refs/variants.md, gated by the signals found
 ```
+
+The Release PR must come from a GitHub App token, not `GITHUB_TOKEN`.
+GitHub does not start `pull_request` or `pull_request_target` workflows for
+a PR opened by `GITHUB_TOKEN`, so the required checks never report and the
+Release PR can never merge. The job's own `GITHUB_TOKEN` stays at the
+workflow's `contents: read`; the App token carries the write scopes.
 
 `release_created` and `tag_name` are root-component outputs. In a monorepo
 read `paths_released` and the `<path>--release_created` outputs instead.
