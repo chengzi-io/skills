@@ -3,7 +3,7 @@ name: write-ears
 description: Write and review EARS functional requirements and acceptance criteria. Use when the user asks to write requirements, document system behavior, create an EARS spec, or mentions requirements syntax, the system shall, functional spec, acceptance criteria, or requirement writing or review. Also use when reviewing a requirements document for completeness, ambiguity, or missing error cases.
 license: MIT
 metadata:
-  version: "2026.06.29"
+  version: "2026.11.06"
 ---
 
 # Write EARS
@@ -13,9 +13,7 @@ EARS eliminates ambiguity, vagueness, complexity, omission, duplication, wordine
 **Core Principle:** Every requirement must be verifiable by a black-box observer at the defined system boundary. Requirements describe *what* the system shall do, not *how* it is built internally.
 
 ## When to Use
-Use for system-level functional requirements and acceptance criteria **at the system boundary**. Do **not** use for architecture decisions (see `write-adr` skill) or executable BDD scenarios (see `write-bdd` skill).
-
-EARS and BDD are complementary: EARS defines the contract; BDD makes it executable. A `When <trigger>, the <system> shall <response>` maps naturally to Gherkin `When <trigger> Then <outcome>`.
+Use for system-level functional requirements and acceptance criteria **at the system boundary**. Do **not** use for architecture decisions (see `write-adr` skill).
 
 ## Workflow (Follow in Order)
 
@@ -57,7 +55,7 @@ Most candidates that look ubiquitous are actually event- or state-driven.
 Run every requirement through the Quality Checklist below. Any unchecked item is a rewrite signal. Re-verify observability at the boundary.
 
 ### 6. Write the Document
-Write to `docs/requirements/<domain>.md` (lowercase, e.g. `auth.md` for `FR-AUTH-0001`). The filename mirrors the `DOMAIN` used in requirement IDs. When writing BDD scenarios with `write-bdd` skill, this same domain becomes the feature directory: `features/auth/`. Keep domain consistent across EARS and BDD — they are two views of the same domain concept.
+Write to `docs/requirements/<domain>.md` (lowercase, e.g. `auth.md` for `FR-AUTH-0001`). The filename mirrors the `DOMAIN` used in requirement IDs.
 
 ### 7. Output
 - If **reviewing** (not authoring): output each finding with the specific requirement ID and a suggested rewrite. Do not write files unless asked.

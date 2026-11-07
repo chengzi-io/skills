@@ -90,7 +90,6 @@ Auto-generated. Do not edit the table by hand. Source pins and sync dates: `pnpm
 | [`repo-layout`](plugins/foundations/skills/repo-layout) | foundations | - | Decide, create, move, rename, refactor, and inspect repository paths so the tree expresses business … |
 | [`tdd`](plugins/foundations/skills/tdd) | foundations | [mattpocock/skills](https://github.com/mattpocock/skills) | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions … |
 | [`write-adr`](plugins/foundations/skills/write-adr) | foundations | - | Draft, review, or slim Architecture Decision Records (ADRs). Trigger on ADR, architecture decision, … |
-| [`write-bdd`](plugins/foundations/skills/write-bdd) | foundations | - | Write, review, and implement BDD Gherkin .feature files and step definitions. Use when the user asks… |
 | [`write-ears`](plugins/foundations/skills/write-ears) | foundations | - | Write and review EARS functional requirements and acceptance criteria. Use when the user asks to wri… |
 | [`writing-openapi-specs`](plugins/foundations/skills/writing-openapi-specs) | foundations | [speakeasy-api/skills](https://github.com/speakeasy-api/skills) | Reference guide for OpenAPI specification best practices, naming conventions, and expressing complex… |
 | [`go-idioms`](plugins/golang/skills/go-idioms) | golang | - | Write and review idiomatic Go that models still get wrong: typed-nil interfaces, append aliasing, de… |
