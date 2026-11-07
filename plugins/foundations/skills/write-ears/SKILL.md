@@ -15,6 +15,8 @@ EARS eliminates ambiguity, vagueness, complexity, omission, duplication, wordine
 ## When to Use
 Use for system-level functional requirements and acceptance criteria **at the system boundary**. Do **not** use for architecture decisions (see `write-adr` skill).
 
+EARS defines the contract; acceptance tests make it executable (see After Approval).
+
 ## Workflow (Follow in Order)
 
 ### 1. Establish System Boundary
@@ -59,7 +61,18 @@ Write to `docs/requirements/<domain>.md` (lowercase, e.g. `auth.md` for `FR-AUTH
 
 ### 7. Output
 - If **reviewing** (not authoring): output each finding with the specific requirement ID and a suggested rewrite. Do not write files unless asked.
-- If **authoring**: confirm the written file path and provide a concise summary of requirements created (count by type and domain).
+- If **authoring**: confirm the written file path, give a concise summary of requirements created (count by type and domain), and ask the user to approve them.
+
+## After Approval
+
+Approved requirements are the contract the implementation is measured against.
+
+- Never edit, weaken, or delete an approved requirement to make code or a test pass. If one looks wrong, stop and ask the user.
+- When the user changes a requirement, keep its ID. IDs of removed requirements are never reused.
+- Every FR gets at least one automated acceptance test (NFRs too, where they can be automated), written in the project's existing test framework and exercising the system boundary.
+- Start each test name with the requirement ID: `FR-AUTH-0001 logs in with a valid password`, or `test_FR_AUTH_0001_...` / `TestFR_AUTH_0001_...` where names cannot contain hyphens. A test covering several requirements lists each ID.
+- Unfinished work is a skipped test, never a deleted one.
+- `requirements-status` turns test results into `docs/requirements/STATUS.md`. A requirement is done only when that report shows ✅.
 
 ## Requirement Patterns
 

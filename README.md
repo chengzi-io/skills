@@ -88,6 +88,7 @@ Auto-generated. Do not edit the table by hand. Source pins and sync dates: `pnpm
 | [`grilling`](plugins/foundations/skills/grilling) | foundations | - | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test … |
 | [`improve-codebase-architecture`](plugins/foundations/skills/improve-codebase-architecture) | foundations | [mattpocock/skills](https://github.com/mattpocock/skills) | Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill throug… |
 | [`repo-layout`](plugins/foundations/skills/repo-layout) | foundations | - | Decide, create, move, rename, refactor, and inspect repository paths so the tree expresses business … |
+| [`requirements-status`](plugins/foundations/skills/requirements-status) | foundations | - | Report which EARS requirements are passing, failing, in progress, or untested by joining docs/requir… |
 | [`tdd`](plugins/foundations/skills/tdd) | foundations | [mattpocock/skills](https://github.com/mattpocock/skills) | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions … |
 | [`write-adr`](plugins/foundations/skills/write-adr) | foundations | - | Draft, review, or slim Architecture Decision Records (ADRs). Trigger on ADR, architecture decision, … |
 | [`write-ears`](plugins/foundations/skills/write-ears) | foundations | - | Write and review EARS functional requirements and acceptance criteria. Use when the user asks to wri… |
