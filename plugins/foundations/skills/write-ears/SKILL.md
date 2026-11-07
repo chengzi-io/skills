@@ -1,6 +1,6 @@
 ---
 name: write-ears
-description: Write and review EARS functional requirements and acceptance criteria. Use when the user asks to write requirements, document system behavior, create an EARS spec, or mentions requirements syntax, the system shall, functional spec, acceptance criteria, or requirement writing or review. Also use when reviewing a requirements document for completeness, ambiguity, or missing error cases.
+description: "Write and review EARS functional requirements and acceptance criteria. Use when the user asks to write requirements, document system behavior, create an EARS spec, or mentions requirements syntax, the system shall, functional spec, or acceptance criteria; also when reviewing a requirements document for completeness, ambiguity, or missing error cases. Also use when implementing or testing behavior in a project with docs/requirements/: acceptance tests must carry requirement IDs, and approved requirements must not be changed to make them pass."
 license: MIT
 metadata:
   version: "2026.11.06"
