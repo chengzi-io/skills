@@ -32,7 +32,7 @@ Draw out desired behaviors without filtering. For every normal behavior, ask: "W
 Before accepting Ubiquitous, look for a hidden trigger or state. Most candidates have one and belong in `When` or `While`.
 
 ### 4. Draft
-- ID: `FR-<DOMAIN>-NNNN` (functional) or `NFR-<DOMAIN>-NNNN` (non-functional). `DOMAIN` is a 2–6 letter uppercase shorthand (`AUTH`, `PAY`); `NNNN` starts at `0001` per domain.
+- ID: `FR-<DOMAIN>-NNNN` (functional) or `NFR-<DOMAIN>-NNNN` (non-functional). `DOMAIN` is a short uppercase name, letters only (`AUTH`, `PAY`, `BILLING`); `NNNN` starts at `0001` per domain.
 - Use the exact pattern for the class. One concern per requirement: split at "and" or "also".
 - The response must be verifiable through public interfaces alone, without reading source code, internal databases, or logs. Otherwise rewrite it.
 - More than 2–3 preconditions or any branching: attach a decision table below the sentence.
