@@ -66,14 +66,6 @@
       "items": [
         {
           "type": "skill",
-          "path": "skills/web-design-guidelines",
-          "target": {
-            "plugin": "web",
-            "name": "web-design-guidelines"
-          }
-        },
-        {
-          "type": "skill",
           "path": "skills/react-best-practices",
           "target": {
             "plugin": "web",

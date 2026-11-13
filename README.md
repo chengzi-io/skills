@@ -111,7 +111,6 @@ Auto-generated. Do not edit the table by hand. Source pins and sync dates: `pnpm
 | [`transitions-dev`](plugins/web/skills/transitions-dev) | web | [Jakubantalik/transitions.dev](https://github.com/Jakubantalik/transitions.dev) | Production-ready CSS transitions for web apps. Use when implementing notification badges, dropdowns,… |
 | [`vercel-composition-patterns`](plugins/web/skills/vercel-composition-patterns) | web | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | React composition patterns that scale. Use when refactoring components with boolean prop proliferati… |
 | [`vercel-react-best-practices`](plugins/web/skills/vercel-react-best-practices) | web | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be … |
-| [`web-design-guidelines`](plugins/web/skills/web-design-guidelines) | web | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check acc… |
 
 <!-- skills:table:end -->
 
