@@ -17,14 +17,6 @@
             "plugin": "web",
             "name": "emil-design-eng"
           }
-        },
-        {
-          "type": "skill",
-          "path": "skills/prototype",
-          "target": {
-            "plugin": "web",
-            "name": "prototype"
-          }
         }
       ]
     },
