@@ -351,6 +351,128 @@
         "sha": "8c3ec5534fc6948b461c6a0275bdfdb8ab0c9888",
         "syncedAt": "2026-08-29T15:50:24.240Z"
       }
+    },
+    {
+      "repo": "jakubkrehel/skills",
+      "branch": "main",
+      "items": [
+        {
+          "type": "skill",
+          "path": "skills/afk",
+          "target": {
+            "plugin": "web",
+            "name": "afk"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/better-accessibility",
+          "target": {
+            "plugin": "web",
+            "name": "better-accessibility"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/better-colors",
+          "target": {
+            "plugin": "web",
+            "name": "better-colors"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/better-interface",
+          "target": {
+            "plugin": "web",
+            "name": "better-interface"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/better-layout",
+          "target": {
+            "plugin": "web",
+            "name": "better-layout"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/better-typography",
+          "target": {
+            "plugin": "web",
+            "name": "better-typography"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/better-ui",
+          "target": {
+            "plugin": "web",
+            "name": "better-ui"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/better-writing",
+          "target": {
+            "plugin": "web",
+            "name": "better-writing"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/break",
+          "target": {
+            "plugin": "web",
+            "name": "break"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/build-design",
+          "target": {
+            "plugin": "web",
+            "name": "build-design"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/explain-interface",
+          "target": {
+            "plugin": "web",
+            "name": "explain-interface"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/interface-review",
+          "target": {
+            "plugin": "web",
+            "name": "interface-review"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/state-machine",
+          "target": {
+            "plugin": "web",
+            "name": "state-machine"
+          }
+        },
+        {
+          "type": "skill",
+          "path": "skills/variant",
+          "target": {
+            "plugin": "web",
+            "name": "variant"
+          }
+        }
+      ],
+      "resolved": {
+        "sha": "a72290d140249813898ba8648becf6415abcb059",
+        "syncedAt": "2026-11-13T16:12:58.031Z"
+      }
     }
   ]
 }
