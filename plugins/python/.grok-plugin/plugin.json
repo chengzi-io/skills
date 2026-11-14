@@ -6,5 +6,15 @@
     "name": "JoJoJotarou",
     "url": "https://github.com/chengzi-io/skills"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "lspServers": {
+    "pyright": {
+      "command": "pyright-langserver",
+      "args": ["--stdio"],
+      "extensionToLanguage": {
+        ".py": "python",
+        ".pyi": "python"
+      }
+    }
+  }
 }

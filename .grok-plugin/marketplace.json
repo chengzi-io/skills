@@ -1,6 +1,6 @@
 {
   "name": "chengzi-skills",
-  "description": "Reusable Agent Skills. Install foundations at user scope; install golang, python, swift, macos, or web at project scope.",
+  "description": "Reusable Agent Skills. Install foundations at user scope; install golang, rust, python, java, typescript, swift, macos, or web at project scope.",
   "owner": {
     "name": "JoJoJotarou",
     "url": "https://github.com/chengzi-io/skills"
@@ -27,6 +27,16 @@
       }
     },
     {
+      "name": "rust",
+      "description": "Rust code intelligence via rust-analyzer LSP. Install at project scope in Rust repositories.",
+      "category": "engineering",
+      "version": "0.1.0",
+      "source": {
+        "type": "local",
+        "path": "./plugins/rust"
+      }
+    },
+    {
       "name": "python",
       "description": "Python engineering skills. Install at project scope in Python repositories.",
       "category": "engineering",
@@ -34,6 +44,26 @@
       "source": {
         "type": "local",
         "path": "./plugins/python"
+      }
+    },
+    {
+      "name": "java",
+      "description": "Java code intelligence via Eclipse JDT language server. Install at project scope in Java repositories.",
+      "category": "engineering",
+      "version": "0.1.0",
+      "source": {
+        "type": "local",
+        "path": "./plugins/java"
+      }
+    },
+    {
+      "name": "typescript",
+      "description": "TypeScript and JavaScript code intelligence via typescript-language-server. Install at project scope in TypeScript repositories.",
+      "category": "engineering",
+      "version": "0.1.0",
+      "source": {
+        "type": "local",
+        "path": "./plugins/typescript"
       }
     },
     {

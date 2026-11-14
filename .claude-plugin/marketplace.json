@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "chengzi-skills",
-  "description": "Reusable Agent Skills. Install foundations at user scope; install golang, python, swift, macos, or web at project scope.",
+  "description": "Reusable Agent Skills. Install foundations at user scope; install golang, rust, python, java, typescript, swift, macos, or web at project scope.",
   "owner": {
     "name": "JoJoJotarou",
     "url": "https://github.com/chengzi-io/skills"
@@ -22,9 +22,30 @@
       "version": "0.1.0"
     },
     {
+      "name": "rust",
+      "description": "Rust code intelligence via rust-analyzer LSP. Install at project scope in Rust repositories.",
+      "source": "./plugins/rust",
+      "category": "engineering",
+      "version": "0.1.0"
+    },
+    {
       "name": "python",
       "description": "Python engineering skills. Install at project scope in Python repositories.",
       "source": "./plugins/python",
+      "category": "engineering",
+      "version": "0.1.0"
+    },
+    {
+      "name": "java",
+      "description": "Java code intelligence via Eclipse JDT language server. Install at project scope in Java repositories.",
+      "source": "./plugins/java",
+      "category": "engineering",
+      "version": "0.1.0"
+    },
+    {
+      "name": "typescript",
+      "description": "TypeScript and JavaScript code intelligence via typescript-language-server. Install at project scope in TypeScript repositories.",
+      "source": "./plugins/typescript",
       "category": "engineering",
       "version": "0.1.0"
     },

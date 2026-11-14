@@ -1,0 +1,26 @@
+{
+  "name": "typescript",
+  "version": "0.1.0",
+  "description": "TypeScript and JavaScript code intelligence via typescript-language-server. Install at project scope in TypeScript repositories.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT",
+  "lspServers": {
+    "typescript": {
+      "command": "typescript-language-server",
+      "args": ["--stdio"],
+      "extensionToLanguage": {
+        ".ts": "typescript",
+        ".tsx": "typescriptreact",
+        ".js": "javascript",
+        ".jsx": "javascriptreact",
+        ".mts": "typescript",
+        ".cts": "typescript",
+        ".mjs": "javascript",
+        ".cjs": "javascript"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "java",
+  "version": "0.1.0",
+  "description": "Java code intelligence via Eclipse JDT language server. Install at project scope in Java repositories.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT",
+  "lspServers": {
+    "jdtls": {
+      "command": "jdtls",
+      "extensionToLanguage": {
+        ".java": "java"
+      },
+      "startupTimeout": 120000
+    }
+  }
+}

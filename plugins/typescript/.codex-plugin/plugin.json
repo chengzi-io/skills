@@ -1,0 +1,17 @@
+{
+  "name": "typescript",
+  "version": "0.1.0",
+  "description": "TypeScript engineering plugin. Install at project scope in TypeScript repositories.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Chengzi TypeScript",
+    "shortDescription": "TypeScript support",
+    "developerName": "JoJoJotarou",
+    "category": "Engineering"
+  }
+}

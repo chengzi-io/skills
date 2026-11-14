@@ -7,6 +7,7 @@ import {
   README_FILE,
   ROOT,
   depLocalDir,
+  exists,
   readJson,
   relPosix,
 } from './workspace.mjs';
@@ -206,15 +207,23 @@ export async function collectPluginRows({
     if (!plugin) continue;
     counts.set(plugin, (counts.get(plugin) || 0) + 1);
   }
-  return (marketplace.plugins || []).map((plugin) => {
+  return Promise.all((marketplace.plugins || []).map(async (plugin) => {
     const { scope, when } = pluginScopeAndWhen(plugin);
+    const source = typeof plugin.source === 'string' ? plugin.source : plugin.source?.path;
+    const manifest = source
+      ? path.join(root, source, '.claude-plugin', 'plugin.json')
+      : '';
+    const lspOnly = manifest && await exists(manifest)
+      ? Object.keys((await readJson(manifest)).lspServers ?? {}).length > 0
+      : false;
     return {
       name: plugin.name,
       scope,
       when,
       skillCount: counts.get(plugin.name) || 0,
+      lspOnly,
     };
-  });
+  }));
 }
 
 export function renderPluginsTable(rows) {
@@ -223,7 +232,7 @@ export function renderPluginsTable(rows) {
   if (rows.length === 0) return [header, separator, '| _(none)_ | | |'].join('\n');
   const body = rows.map((row) => {
     const when = row.skillCount === 0
-      ? `${row.when} (placeholder, no skills yet)`
+      ? `${row.when} (${row.lspOnly ? 'LSP only' : 'placeholder, no skills yet'})`
       : row.when;
     return `| ${mdCell(`**${row.name}**`)} | ${mdCell(row.scope)} | ${mdCell(when)} |`;
   });

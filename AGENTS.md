@@ -40,9 +40,12 @@ Keep maintainer notes **in that skill directory**, not at plugin root or `docs/`
 | Plugin | Scope | Put here when |
 |--------|--------|----------------|
 | `foundations` | user | Language-agnostic: requirements, TDD, architecture, decisions |
-| `golang` | project | Go-only |
-| `python` | project | Python-only |
-| `swift` | project | Swift / Xcode / Apple platforms |
+| `golang` | project | Go-only (gopls LSP) |
+| `rust` | project | Rust-only (rust-analyzer LSP) |
+| `python` | project | Python-only (Pyright LSP) |
+| `java` | project | Java-only (Eclipse JDT LSP) |
+| `typescript` | project | TypeScript / JavaScript (typescript-language-server LSP) |
+| `swift` | project | Swift / Xcode / Apple platforms (SourceKit-LSP) |
 | `macos` | project | Native macOS apps |
 | `web` | project | Web, React, UI |
 
@@ -55,6 +58,8 @@ Adding a plugin (not a skill) means all of:
 - `plugins/<name>/.codex-plugin/plugin.json`
 - `plugins/<name>/skills/` (`.gitkeep` if empty)
 - entries in `.claude-plugin/marketplace.json`, `.grok-plugin/marketplace.json`, and `.agents/plugins/marketplace.json`
+
+Components declared only in `.claude-plugin/plugin.json` (for example `lspServers`) must be repeated in `.grok-plugin/plugin.json`. Grok reads the first manifest it finds and does not merge the two. Codex has no LSP support: keep `lspServers` out of `.codex-plugin/plugin.json`.
 
 ## Validation — **Mandatory**
 

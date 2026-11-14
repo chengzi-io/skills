@@ -2,7 +2,7 @@
 
 Agent Skills marketplace for Claude Code, Grok, and Codex. Plugins are split so a session only loads skill names and descriptions for the stacks you enabled — a Python repo does not pay for Go or React skill text.
 
-**foundations** is language-agnostic (user scope). **golang**, **python**, **swift**, **macos**, and **web** are per-project.
+**foundations** is language-agnostic (user scope). **golang**, **rust**, **python**, **java**, **typescript**, **swift**, **macos**, and **web** are per-project.
 
 Do not clone this repo into `~/.agents/skills`. That loads every skill into every session.
 
@@ -65,12 +65,26 @@ Auto-generated. Do not edit the table by hand.
 |--------|--------|------|
 | **foundations** | user | Every project |
 | **golang** | project | Go repositories |
-| **python** | project | Python repositories (placeholder, no skills yet) |
+| **rust** | project | Rust repositories (LSP only) |
+| **python** | project | Python repositories (LSP only) |
+| **java** | project | Java repositories (LSP only) |
+| **typescript** | project | TypeScript repositories (LSP only) |
 | **swift** | project | Swift / Xcode repositories |
 | **macos** | project | macOS app repositories |
 | **web** | project | Frontend repositories |
 
 <!-- plugins:table:end -->
+
+Every language plugin enables LSP in Claude Code and Grok. They configure the connection only; install the server binary on `PATH` yourself:
+
+- `golang` — `gopls`: `go install golang.org/x/tools/gopls@latest`
+- `rust` — `rust-analyzer`: `rustup component add rust-analyzer`
+- `python` — `pyright-langserver`: `npm install -g pyright`
+- `java` — `jdtls`: `brew install jdtls` (needs JDK 17+)
+- `typescript` — `typescript-language-server`: `npm install -g typescript-language-server typescript`
+- `swift` — `sourcekit-lsp`: bundled with the Swift toolchain (Xcode or swift.org)
+
+Codex has no LSP support: its plugin runtime accepts but ignores `lspServers`, so Codex users rely on file search and reading instead.
 
 ## Skills
 

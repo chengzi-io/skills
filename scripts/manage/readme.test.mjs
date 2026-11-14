@@ -83,10 +83,12 @@ test('renderPluginsTable only placeholders plugins with zero skills', () => {
   const table = renderPluginsTable([
     { name: 'macos', scope: 'project', when: 'Native macOS app repositories', skillCount: 5 },
     { name: 'python', scope: 'project', when: 'Python repositories', skillCount: 0 },
+    { name: 'rust', scope: 'project', when: 'Rust repositories', skillCount: 0, lspOnly: true },
   ]);
   assert.match(table, /\*\*macos\*\* \| project \| Native macOS app repositories \|/);
   assert.doesNotMatch(table, /\*\*macos\*\*.*placeholder/);
   assert.match(table, /\*\*python\*\* \| project \| Python repositories \(placeholder, no skills yet\) \|/);
+  assert.match(table, /\*\*rust\*\* \| project \| Rust repositories \(LSP only\) \|/);
 });
 
 test('replaceMarkedBlock swaps only the marked region', () => {
@@ -104,13 +106,22 @@ test('updateReadmeTables refreshes plugins and skills blocks from disk', async (
   const macos = path.join(pluginsRoot, 'macos', 'skills', 'macos-patterns');
   await mkdir(macos, { recursive: true });
   await mkdir(path.join(pluginsRoot, 'python', 'skills'), { recursive: true });
+  await mkdir(path.join(pluginsRoot, 'rust', '.claude-plugin'), { recursive: true });
+  await mkdir(path.join(pluginsRoot, 'rust', 'skills'), { recursive: true });
   await writeFile(path.join(macos, 'SKILL.md'), '---\nname: macos-patterns\ndescription: Native macOS patterns.\n---\n');
+  await writeFile(path.join(pluginsRoot, 'rust', '.claude-plugin', 'plugin.json'), `${JSON.stringify({
+    name: 'rust',
+    lspServers: {
+      'rust-analyzer': { command: 'rust-analyzer', extensionToLanguage: { '.rs': 'rust' } },
+    },
+  }, null, 2)}\n`);
   const mktFile = path.join(root, 'marketplace.json');
   await writeFile(mktFile, `${JSON.stringify({
     owner: { url: 'https://github.com/chengzi-io/skills' },
     plugins: [
-      { name: 'macos', description: 'Native macOS app skills. Install at project scope in macOS app repositories.' },
-      { name: 'python', description: 'Python engineering skills. Install at project scope in Python repositories.' },
+      { name: 'macos', source: './plugins/macos', description: 'Native macOS app skills. Install at project scope in macOS app repositories.' },
+      { name: 'python', source: './plugins/python', description: 'Python engineering skills. Install at project scope in Python repositories.' },
+      { name: 'rust', source: './plugins/rust', description: 'Rust code intelligence. Install at project scope in Rust repositories.' },
     ],
   }, null, 2)}\n`);
   const depsFile = path.join(root, 'dependencies.json');
@@ -152,13 +163,14 @@ test('updateReadmeTables refreshes plugins and skills blocks from disk', async (
     skillsRoot: path.join(root, 'skills'),
   });
   assert.equal(result.changed, true);
-  assert.equal(result.pluginCount, 2);
+  assert.equal(result.pluginCount, 3);
   assert.equal(result.count, 1);
 
   const readme = await readFile(readmeFile, 'utf8');
   assert.match(readme, /\*\*macos\*\* \| project \| macOS app repositories \|/);
   assert.doesNotMatch(readme, /\*\*macos\*\*.*placeholder/);
   assert.match(readme, /Python repositories \(placeholder, no skills yet\)/);
+  assert.match(readme, /Rust repositories \(LSP only\)/);
   assert.match(readme, /\[`macos-patterns`\]\(plugins\/macos\/skills\/macos-patterns\)/);
   assert.match(readme, /\[fayazara\/macos-app-skills\]\(https:\/\/github.com\/fayazara\/macos-app-skills\)/);
 });

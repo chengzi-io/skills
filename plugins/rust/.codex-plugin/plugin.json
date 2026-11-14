@@ -1,0 +1,17 @@
+{
+  "name": "rust",
+  "version": "0.1.0",
+  "description": "Rust engineering plugin. Install at project scope in Rust repositories.",
+  "author": {
+    "name": "JoJoJotarou",
+    "url": "https://github.com/chengzi-io/skills"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Chengzi Rust",
+    "shortDescription": "Rust support",
+    "developerName": "JoJoJotarou",
+    "category": "Engineering"
+  }
+}
