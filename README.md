@@ -1,10 +1,10 @@
 # skills
 
-Agent Skills marketplace for Claude Code, Grok, and Codex. Plugins are split so a session only loads skill names and descriptions for the stacks you enabled — a Python repo does not pay for Go or React skill text.
+Agent Skills marketplace for Claude Code, Grok, Codex, and pi. Plugins are split so a session only loads skill names and descriptions for the stacks you enabled — a Python repo does not pay for Go or React skill text. In pi this selection happens automatically per project.
 
 **foundations** is language-agnostic (user scope). **golang**, **rust**, **python**, **java**, **typescript**, **swift**, **macos**, and **web** are per-project.
 
-Do not clone this repo into `~/.agents/skills`. That loads every skill into every session.
+Do not clone this repo into `~/.agents/skills`. That loads every skill into every session. pi is the exception: install it as a package (below) and the extension filters skills per project.
 
 ## Quick start
 
@@ -54,6 +54,34 @@ codex plugin add macos@chengzi-skills
 ```
 
 No `--scope`. Commands follow each CLI's current plugin docs if flags change.
+
+### pi
+
+```bash
+pi install git:github.com/chengzi-io/skills@v1
+```
+
+One install, every project. pi has no marketplace and no install scopes, so this package declares `plugins/*/skills` in its `pi` manifest and `extensions/pi-skills.mjs` picks the applicable plugins per session. A Go API keeps `foundations` and `golang`; the same repo with a `web/package.json` that depends on React also keeps `web`. Each session reports the outcome once. The totals include skills from other sources, such as `~/.agents/skills`:
+
+```text
+skills: 19/48 kept (go)
+```
+
+Detection runs once per session — editing `go.mod` mid-session takes effect next session — because the skill list lives in the system prompt, and changing it mid-session would invalidate the provider's prompt cache for the whole conversation. To narrow a project further, add a filtering delta to `.pi/settings.json`:
+
+```json
+{
+  "packages": [{
+    "source": "git:github.com/chengzi-io/skills",
+    "autoload": false,
+    "skills": ["!plugins/web/skills/**"]
+  }]
+}
+```
+
+Use `!glob` to exclude a whole plugin, or `-plugins/<plugin>/skills/<skill>` for one skill; `pi config --local` writes the same entries with full paths. Skills marked `disable-model-invocation: true` stay out of the prompt but remain callable through `/skill:<name>`.
+
+pi ignores `.claude-plugin/`, `.grok-plugin/`, and `.codex-plugin/` manifests, so the `lspServers` entries below apply to Claude Code and Grok only.
 
 ## Plugins
 
