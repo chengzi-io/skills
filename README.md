@@ -58,8 +58,10 @@ No `--scope`. Commands follow each CLI's current plugin docs if flags change.
 ### pi
 
 ```bash
-pi install git:github.com/chengzi-io/skills@v1
+pi install git:github.com/chengzi-io/skills
 ```
+
+Tracks the default branch, so `pi update --extensions` picks up new and synced skills. Append a ref to pin instead: `@<tag-or-commit>`
 
 One install, every project. pi has no marketplace and no install scopes, so this package declares `plugins/*/skills` in its `pi` manifest and `extensions/pi-skills.mjs` picks the applicable plugins per session. A Go API keeps `foundations` and `golang`; the same repo with a `web/package.json` that depends on React also keeps `web`. Each session reports the outcome once. The totals include skills from other sources, such as `~/.agents/skills`:
 
