@@ -136,7 +136,6 @@ Auto-generated. Do not edit the table by hand. Source pins and sync dates: `pnpm
 | [`tdd`](plugins/foundations/skills/tdd) | foundations | [mattpocock/skills](https://github.com/mattpocock/skills) | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions … |
 | [`write-adr`](plugins/foundations/skills/write-adr) | foundations | - | Draft, review, or slim Architecture Decision Records (ADRs). Trigger on ADR, architecture decision, … |
 | [`write-ears`](plugins/foundations/skills/write-ears) | foundations | - | Write and review EARS functional requirements and acceptance criteria. Use when the user asks to wri… |
-| [`write-github-readme`](plugins/foundations/skills/write-github-readme) | foundations | - | Generate concise, well-formatted, non-boring GitHub READMEs. Use when the user asks for a README, Gi… |
 | [`writing-openapi-specs`](plugins/foundations/skills/writing-openapi-specs) | foundations | [speakeasy-api/skills](https://github.com/speakeasy-api/skills) | Reference guide for OpenAPI specification best practices, naming conventions, and expressing complex… |
 | [`go-idioms`](plugins/golang/skills/go-idioms) | golang | - | Write and review idiomatic Go that models still get wrong: typed-nil interfaces, append aliasing, de… |
 | [`oapi-codegen-best-practices`](plugins/golang/skills/oapi-codegen-best-practices) | golang | - | Best practices for generating and wiring Go HTTP APIs with oapi-codegen (v2), covering strict-server… |
