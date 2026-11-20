@@ -1,0 +1,6 @@
+# Add this step in the job that builds the DMG, before that build, if the
+# workflow does not already install Python 3.10 or later. dmgbuild needs it.
+# The macos-15 system Python is 3.9 and is not enough.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"

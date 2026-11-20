@@ -1,0 +1,26 @@
+# Insert after the job that publishes the GitHub Release. Fill in every <placeholder>.
+# Do not assume job names, a release-please tag output, or a particular runner.
+  homebrew:
+    name: Update Homebrew cask
+    # Runs once the release is public, so a failure here leaves the publish job green
+    # and can be re-run on its own.
+    needs: [<publish job id>]
+    runs-on: <the publish job's runner>
+    timeout-minutes: 15
+    environment: <secrets environment, usually release>
+    env:
+      TAG: ${{ needs.<publish job id>.outputs.<tag or version output> }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+      - name: Download the published DMG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$TAG" --pattern '*.dmg' --dir dist
+      - name: Push the cask to the tap
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # Set any of APP_NAME, VERSION, DMG, HOMEBREW_TAP, … that the script
+          # cannot read from the project on its own.
+        run: <path to update-cask.sh> push
